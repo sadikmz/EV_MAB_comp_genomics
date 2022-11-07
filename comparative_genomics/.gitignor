@@ -1,0 +1,7 @@
+#git config --global user.name "user name"
+#git config --global user.email "email"
+#git config --global github.user.name "user name"
+#git config --global core.editor "subl -n -w"
+#git config --global core.autocrlf input
+#git config --global --list 
+
