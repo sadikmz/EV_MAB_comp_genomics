@@ -1,0 +1,290 @@
+# Load packages
+
+```{r load_packges }
+library(topGO)
+# library(GO.db)
+library(biomaRt)
+library(Rgraphviz)
+library(tidyverse)
+library(ggtext)
+```
+
+# Load final tidy data containg GO terms, OGs and gene list for all speceis including Musa itinerans 
+```{r }
+
+library(tidyverse)
+
+GO_terms_geneID_EV_AED25 <-
+  GO_terms_EV_AED25_TE %>% 
+  filter(GO_terms != "NA") %>%
+  filter(!str_detect(seq.name,"^M")) %>%
+  select(GO_terms, seq.name)
+
+GO_terms_geneID_EV_AED25 %>% filter(!str_detect(GO_terms,"GO"))
+
+
+
+go_odb_aspects_description <- read.delim("../../../bgimazia_musa/Ensete_Musa/go_terms/EV_EG_MABS_enrichment//go_odb_aspects_description.txt") 
+
+
+# GO_terms_EV_AED25_OGs_genes from combine_orthogroup_GO_terms
+```
+  
+
+
+
+# Orthogroups present in either enset landrace but missing in Musa
+```{r enset_specific}
+
+dir.create(".orthofinder/go_terms_enrichment")
+
+EV_specific_MAB <- 
+
+  # EV_bedadeti_specific_MAB <-
+  GO_terms_EV_AED25_MAB_OGs_genes  %>% 
+  left_join(
+    EV_AED25_MAB.OG_GeneCount %>% 
+      filter(
+        Ensete_ventricosum_bedadeti == 1,
+        Ensete_ventricosum_mazia == 0,
+        
+        Musa_acuminata == 0,
+        Musa_balbisiana == 0
+      ) %>% select(Orthogroup) %>% 
+      mutate(EV_shared_GF = 'yes') 
+  ) %>% 
+  mutate(
+    EV_shared_GF = str_replace_na(EV_shared_GF,"NA")
+  ) %>%
+    filter(EV_shared_GF != "NA") %>%
+  filter(GO_terms != "NA") %>%
+  
+  select(seq.name) %>%
+  rbind( 
+
+    # mazia specific
+  GO_terms_EV_AED25_MAB_OGs_genes  %>% 
+  left_join(
+    EV_AED25_MAB.OG_GeneCount %>% 
+      filter(
+        Ensete_ventricosum_bedadeti == 0,
+        Ensete_ventricosum_mazia == 1,
+        
+        Musa_acuminata == 0,
+        Musa_balbisiana == 0
+      ) %>% select(Orthogroup) %>% 
+      mutate(EV_shared_GF = 'yes') 
+  ) %>% 
+  mutate(
+    EV_shared_GF = str_replace_na(EV_shared_GF,"NA")
+  ) %>%
+  filter(EV_shared_GF != "NA") %>%
+  filter(GO_terms != "NA") %>%
+  
+  select(seq.name),
+
+  # shared EV 
+
+GO_terms_EV_AED25_MAB_OGs_genes  %>%
+filter(GO_terms != "NA") %>%
+left_join(
+    EV_AED25_MAB.OG_GeneCount %>%
+      filter(
+        Ensete_ventricosum_bedadeti == 1,
+        Ensete_ventricosum_mazia == 1,
+        
+        Musa_acuminata == 0,
+        Musa_balbisiana == 0
+        
+      ) %>% 
+      select(Orthogroup) %>%
+      mutate(EV_shared_GF = 'yes')
+  ) %>%
+  # mutate(
+  #   EV_shared_GF = str_replace_na(EV_shared_GF,"NA")
+  # ) %>%
+  filter(EV_shared_GF == "yes") %>%
+  filter(GO_terms != "NA")  %>%
+  select(seq.name)) %>%
+  distinct()
+
+
+# TopGo Enrichment 
+
+## topGO
+```{r enrichment }
+## Create a list of containing genes of interest 
+
+targe_gene_list=EV_specific_MAB$seq.name
+
+## Create a list containing all genes that we want to compare out genes of interest.
+
+all_genes_MAB_list = GO_terms_geneID_EV_AED25_MAB$seq.name
+
+#Step 2: Create GO annotation
+
+all_genes_EV_AED25_EG_MABS_db <- 
+  GO_terms_geneID_EV_AED25_MAB %>% 
+  left_join(go_odb_aspects_description) %>%
+  filter(aspects == "biological_process") %>%
+  dplyr::select(-description,-defination) 
+
+# build the gene 2 GO annotation list (needed to create topGO object)
+gene_2_GO=unstack(all_genes_EV_AED25_EG_MABS_db[,c(1,2)])
+
+# remove any candidate genes without GO annotation
+keep = targe_gene_list %in% all_genes_EV_AED25_EG_MABS_db[,2]$seq.name
+keep =which(keep==TRUE)
+targe_gene_list=targe_gene_list[keep]
+
+# make named factor showing which genes are of interest
+geneList=factor(as.integer(all_genes_MAB_list %in% targe_gene_list))
+names(geneList)= all_genes_MAB_list
+
+#Step 3: Make topGO data object
+GOdata=new('topGOdata', ontology='BP', allGenes = geneList, annot = annFUN.gene2GO, gene2GO = gene_2_GO)
+
+# Step 4: Test for significance
+# define test using the classic algorithm with fisher (refer to [1] if you want to understand how the different algorithms work)
+classic_fisher_result=runTest(GOdata, algorithm='classic', statistic='fisher')
+
+
+# define test using the weight01 algorithm (default) with fisher
+weight_fisher_result=runTest(GOdata, algorithm='weight01', statistic='fisher') 
+
+# generate a table of results: we can use the GenTable function to generate a summary table with the results from tests applied to the topGOdata object.
+allGO=usedGO(GOdata)
+all_res=GenTable(GOdata, weightFisher=weight_fisher_result, orderBy='weightFisher', topNodes=length(allGO))
+
+# Step 5: Correcting for multiple testing
+
+#performing BH correction on our p values
+p.adj=round(p.adjust(all_res$weightFisher,method="BH"),digits = 4)
+
+# create the file with all the statistics from GO analysis
+all_res_final=cbind(all_res,p.adj)
+all_res_final=all_res_final[order(all_res_final$p.adj),]
+
+all_res_final <- all_res_final %>%
+  mutate(p.adj = str_replace_na(p.adj,"0.0000001"),
+         p.adj = as.numeric(p.adj)) 
+
+
+# set all near zeros to 0.0000001
+all_res_final$p.adj[all_res_final$p.adj==0.00e+00] <- 0.0000001
+
+# p.adj <= 0.05 
+p.adj_cuttoff <- 0.05
+
+EV_specific_MAB_topGO <-  
+  all_res_final[all_res_final$p.adj<=p.adj_cuttoff,c("GO.ID","Term","Annotated","Significant", "Expected", "p.adj")]
+
+
+EV_specific_MAB_topGO$Category <- "Present in either EV & absent in Musa"
+
+# save 
+# write.table(EV_bedadet_MAB,file = paste0("../../reannotation_analysis/mazia_reannotation/orthofinder/go_terms_enrichment/EV_AED25_EG_MABS/EV_bedadet_MAB.txt"),
+#             col.names = F, row.names = T, quote = F, sep = '\t')
+
+
+
+# PLOT the GO hierarchy plot: the enriched GO terms are colored in yellow/red according to significance level
+
+# pdf(file='topGOPlot_fullnames.pdf', height=12, width=12, paper='special', pointsize=18)
+# showSigOfNodes(GOdata, score(weight_fisher_result), useInfo = "none", sigForAll=FALSE, firstSigNodes=5,.NO.CHAR=50)
+# printGraph(GOdata, classic_fisher_result, firstSigNodes =6, fn.prefix = "../../reannotation_analysis/mazia_reannotation/orthofinder/go_terms_enrichment/AED25/EV_shared_MAB_topGO", useInfo = "def")
+
+# remove temp files
+rm(classic_fisher_result,GOdata,gene_2_GO,weight_fisher_result,all_res_final,p.adj,
+   all_res,all_res_final.padj_05,all_res_final,geneList,targe_gene_list,all_genes_MAB_list,keep,allGO)
+
+# dev.off()
+
+```
+
+
+# Orthogroups present in at least one Musa and absent from EV
+
+```{r Musa_specic}    
+# Specific to MUSA genomes
+
+MUSA_MAB_specific <- 
+  GO_terms_EV_AED25_MAB_OGs_genes  %>%
+  left_join(
+    EV_AED25_MAB.OG_GeneCount %>%
+      filter(
+        Ensete_ventricosum_bedadeti == 0,
+        Ensete_ventricosum_mazia == 0,
+        
+        Musa_acuminata == 1,
+        Musa_balbisiana == 1,
+
+      ) %>% select(Orthogroup) %>%
+      mutate(EV_shared_GF = 'yes')
+  ) %>%
+  mutate(
+    EV_shared_GF = str_replace_na(EV_shared_GF,"NA")
+  ) %>%
+  filter(EV_shared_GF != "NA") %>%
+  filter(GO_terms != "NA") %>%
+  select(seq.name) %>%
+  distinct() %>%
+  rbind(
+    # Specific to  MB, MS, MI
+    # Specific to MA, MS, MI
+    
+    GO_terms_EV_AED25_MAB_OGs_genes  %>%
+      left_join(
+        EV_AED25_MAB.OG_GeneCount %>%
+          filter(
+            Ensete_ventricosum_bedadeti == 0,
+            Ensete_ventricosum_mazia == 0,
+            
+            Musa_acuminata == 1,
+            Musa_balbisiana == 0,
+                        
+          ) %>% select(Orthogroup) %>%
+          mutate(EV_shared_GF = 'yes')
+      ) %>%
+      mutate(
+        EV_shared_GF = str_replace_na(EV_shared_GF,"NA")
+      ) %>%
+      filter(EV_shared_GF != "NA") %>%
+      filter(GO_terms != "NA") %>%
+      select(seq.name) %>%
+      distinct(),
+    
+    # Specific to MA, MB, MI 
+    GO_terms_EV_AED25_MAB_OGs_genes  %>%
+      left_join(
+        EV_AED25_MAB.OG_GeneCount %>%
+          filter(
+            Ensete_ventricosum_bedadeti == 0,
+            Ensete_ventricosum_mazia == 0,
+            
+            Musa_acuminata == 0,
+            Musa_balbisiana == 1,
+            
+          ) %>% select(Orthogroup) %>%
+          mutate(EV_shared_GF = 'yes')
+      ) %>%
+      mutate(
+        EV_shared_GF = str_replace_na(EV_shared_GF,"NA")
+      ) %>%
+      filter(EV_shared_GF != "NA") %>%
+      filter(GO_terms != "NA") %>%
+      select(seq.name) %>%
+      distinct()
+  ) %>% 
+  distinct() 
+```
+
+# TopGO enrichment using same script changing the input file
+
+
+# save project
+```{r save_project}
+save.image(file = "orthofinder/EV_AED25_MAB/OrthoFinder.EV.AED25.MAB.RData")
+```
+
+
