@@ -23,17 +23,15 @@ GO_terms_geneID_EV_AED25 <-
 GO_terms_geneID_EV_AED25 %>% filter(!str_detect(GO_terms,"GO"))
 
 
-
-go_odb_aspects_description <- read.delim("../../../bgimazia_musa/Ensete_Musa/go_terms/EV_EG_MABS_enrichment//go_odb_aspects_description.txt") 
+go_odb_aspects_description <- read.delim("go_terms/EV_MAB_enrichment/go_odb_aspects_description.txt") 
 
 
 # GO_terms_EV_AED25_OGs_genes from combine_orthogroup_GO_terms
 ```
   
 
-
-
 # Orthogroups present in either enset landrace but missing in Musa
+
 ```{r enset_specific}
 
 dir.create(".orthofinder/go_terms_enrichment")
@@ -284,7 +282,7 @@ MUSA_MAB_specific <-
 
 # save project
 ```{r save_project}
-save.image(file = "orthofinder/EV_AED25_MAB/OrthoFinder.EV.AED25.MAB.RData")
+save.image(file = "orthofinder/EV_AED25_MAB/OrthoFinder.EV.AED25.MAB.enrich.RData")
 ```
 
 
