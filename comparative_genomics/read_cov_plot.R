@@ -19,4 +19,4 @@ for (i in bed_cov_list){
 
 EV_MAB_mapping_coverage = do.call(rbind, datalist)
 
-save.image(file = "mazia_EG_MABS_alignment_coverage_dedup.RData")
+save.image(file = "EV_MAB_mapping_coverage_coverage_dedup.RData")

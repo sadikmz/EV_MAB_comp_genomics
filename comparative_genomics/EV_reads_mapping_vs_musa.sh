@@ -10,6 +10,7 @@
 #SBATCH --mail-type=FAIL,END  # Type of email notification- BEGIN,END,FAIL,ALL
 #SBATCH --mail-user=Sadik.Muzemil@warwick.ac.uk
 
+module purge
 
 set -eu
  
@@ -70,7 +71,7 @@ for i in musa_ac musa_ba
                 # samtools bam2fq -1 $PATH_WGS/panreads/${i}/${i}.${j}.unaligned.11.fq -2 $PATH_WGS/panreads/${i}/${i}.${j}.unaligned.22.fq -n align_out/${i}.${j}.unaligned.bam -@ 36
 
                 # mapping statistics 
-        #        qualimap bamqc -bam align_out/${i}.${j}.sorted.bam -outdir align_out -outfile ${i}.${j}.sorted.bam.qualimap -sd --java-mem-size=10G
+               qualimap bamqc -bam align_out/${i}.${j}.sorted.dedup.bam -outdir align_out -outfile ${i}.${j}.sorted.bam.qualimap -sd --java-mem-size=10G
 
                 # coverage 
                 bedtools genomecov -ibam align_out/${i}.${j}.sorted.dedup.bam -bga > align_out/${i}.${j}.coverage.bed 
@@ -83,5 +84,14 @@ for i in musa_ac musa_ba
 
         
 done
+
+
+${i}.${j}.coverage.bed 
+musa_ac.mazia.coverage.bed 
+musa_ac.bedadeti.coverage.bed 
+musa_ba.mazia.coverage.bed 
+musa_ba.bedadeti.coverage.bed
+
+ 
 
 
