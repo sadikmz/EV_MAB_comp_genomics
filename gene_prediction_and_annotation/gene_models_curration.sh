@@ -1,7 +1,21 @@
 #!/bin/bash
+#!/bin/
+#SBATCH --job-name=orthf
+#SBATCH --partition=hmem
+#SBATCH --nodes=1
+#SBATCH --cpus-per-task=48
+#SBATCH --mem-per-cpu=3700
+#SBATCH --time=48:00:00
+#SBATCH --output=fc.%J.out
+#SBATCH --error=fc.%J.err
+#SBATCH --mail-type=FAIL,END  # Type of email notification- BEGIN,END,FAIL,ALL
+#SBATCH --mail-user=Sadik.Muzemil@warwick.ac.uk
+
 
 set -eu
-#e as soon as the one single command fails the whole script stops 
-#u the script breaks when using undefined variable 
-set -o pipefail 
-# the whole pipe fails if there is erro in in piping
+
+# OrthoFinder: Genomic sequence unmasked 
+
+Rscript extract_longest_isoforms.R 
+
+orthofinder -f EV_MAB -a 48

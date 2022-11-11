@@ -34,7 +34,7 @@ go_odb_aspects_description <- read.delim("go_terms/EV_MAB_enrichment/go_odb_aspe
 
 ```{r enset_specific}
 
-dir.create(".orthofinder/go_terms_enrichment")
+dir.create("orthofinder/go_terms_enrichment")
 
 EV_specific_MAB <- 
 
