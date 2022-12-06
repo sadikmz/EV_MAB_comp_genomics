@@ -1,8 +1,0 @@
-name: name_of_env 
-channels:
-  - conda
-  - base
-  - R
-dependencies:
-  - r-base
-  - r-tidyverse
