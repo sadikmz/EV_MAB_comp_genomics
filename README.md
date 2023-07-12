@@ -9,3 +9,11 @@
 6. Comparative genomics and gene family conservation analysis
 7. Analysis of NLR encoding genes
 8. Phylogenetic analysis of NLRs
+
+# Figures/Plots
+
+# Links for external data
+1. [Banana Genome Hub](https://banana-genome-hub.southgreen.fr)
+
+# Citation 
+Muzemil et al. 
