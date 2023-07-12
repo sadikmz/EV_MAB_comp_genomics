@@ -1,37 +1,42 @@
-# RepeatProteinMask and RepeatMasker
-## Installations:
+**Step1: Structural identification of repeatitive elements **
+
+### RepeatProteinMask and RepeatMasker
+#### Installations:
 conda create -n repeatmasking -c bioconda RepeatMasker repeatmodeler trf 
 
-# path to your assembled genome 
+### path toassembled genome 
 genome=path_to_assembled_genome
 
-## RepeatProteinMask
+### RepeatProteinMask
 RepeatProteinMask $genome -noLowSimple -pvalue 0.0001 
 cat ${genome}.annot | awk -v OFS='\t' '{print $4,$5,$6,$7,$8,$9,$10,$11}' | grep -v SeqID > repeatproteinmask.bed
 bedtools getfasta -fi ${genome}.fna -bed repeatproteinmask.bed -fo RM.out.fasta  
 
-## RepeatMasker 
+### RepeatMasker 
 RepeatMasker -species Viridiplantae $genome -pa 8 
 
 RM2Bed.py ${genome}.fna.out
 bedtools getfasta -fi ${genome}.fna -bed ${genome}.rm.bed -fo RM.out.fasta  
 
-## RepeatModeler 
+### RepeatModeler 
 BuildDatabase -name your_species_name ${genome}.fna
 RepeatModeler -database your_species_name -pa 32 -LTRStruct  
 
-# Miniature Inverted-repeat Transposable Elements (MITE)-Hunter 
+### Miniature Inverted-repeat Transposable Elements (MITE)-Hunter 
 ~/apps/MITE-hunter/MITE_Hunter_manager.pl -i ${genome}.fna -g ${genome}_MH -c 32 -n 5 -S 12345678 –P 1
 ## MITE_Hunter_manager TEs:  ${genome}_MH_Step8_singlet.fa 
 
-# Tandem Repeat Finde, TRF, Piler, RepeatModeler2
+### Tandem Repeat Finde, TRF, Piler, RepeatModeler2
 trf ${genome}.fna 2 5 7 80 10 50 2000 -m -h 
-## Extract fasta: use TRFdat_to_bed.py #source: https://raw.githubusercontent.com/hdashnow/TandemRepeatFinder_scripts/master/TRFdat_to_bed.py
+
+### Extract fasta: 
+source:TRFdat_to_bed.py #source: https://raw.githubusercontent.com/hdashnow/TandemRepeatFinder_scripts/master/TRFdat_to_bed.py
+
 ./TRFdat_to_bed.py --dat ${genome}.fna.2.7.7.80.10.50.500.dat --bed ${genome}.trf.bed 
 
 bedtools getfasta -fi ${genome}.fna -bed ${genome}.trf.bed  > ${genome}.trf.fasta
 
-# PILER as described in https://www.drive5.com/piler/. 
+#### PILER as described in https://www.drive5.com/piler/. 
 pals -self ${genome}.fna hit.gff
 piler -trs hit.gff -out trs.gff
 mkdir fams
@@ -62,13 +67,14 @@ cat ${genome}.RPM.out.fasta ${genome}.RM.fasta ${genome}.RMod.out.fasta ${genome
 cd-hit -i redundant_repeat_lib.fasta -d 0 -o redundant_repeat_lib.non_redun.fasta -c 0.80 -n 5 -G 1 -g 0 -M 0 -T 24
 
 
-# Excluding highly conserved protein coding genes or multi-member gene families using BLASTP search (e-value threshold of 1e-10) against monocots protein database downloaded from EnsemblPlants (https://plants.ensembl.org/index.html) and Banana Genome Hub.
-## Extract the fasta files the predicted repeats from the various tools  
+**Step2:  Excluding highly conserved protein coding genes or multi-member gene families using BLASTP search (e-value threshold of 1e-10) against monocots protein database downloaded from EnsemblPlants (https://plants.ensembl.org/index.html) and Banana Genome Hub.**
+
+### Extract the fasta files the predicted repeats from the various tools  
 
 rep_lib=redundant_repeat_lib.non_redun
 
 makeblastdb -in blastdb/musa.arab_T_ensemblemonocot.enseteg.fa -input_type prot 
-## BLASTP
+### BLASTP
 blastx 
 -db blastdb/musa.arab_T_ensemblemonocot.enseteg.fa \
 -query $rep_lib \
@@ -78,7 +84,7 @@ blastx
 -num_threads 24 \
 -out $rep_lib.blastx.out
 
-##### convert blast hits to bed file and exclude the bed file interval from fasta
+#### convert blast hits to bed file and exclude the bed file interval from fasta
 
 cut -f 1,4,5 $rep_lib.blastx.out | awk '{if ($2>$3) print $1,$3,$2,".",".","-"; else print $1,$2,$3,".",".","+";}' OFS='\t' | awk '{a=$2-1;print $1,a,$3,$4,$5,$6;}' OFS='\t'| bedtools sort > $rep_lib.protein_cleared.draft.bed
 bedtools merge -i $rep_lib.protein_cleared.draft.bed -s -c 6 -o distinct > $rep_lib.protein_cleared.final.bed
@@ -106,6 +112,8 @@ EDTA.pl \
 
 # Final combined repeat identification and repeatitive sequence masking 
 cat $rep_file.final ${genome}.fna.mod.EDTA.TElib.fa > ${genome}_repeat_lib.fasta
+
+**Step3: Annotating repeatitve elements **
 
 RepeatMasker -nolow -no_is -norna -engine ncbi -lib ${genome}_repeat_lib.fasta ${genome}.fna -pa 12 -gff -poly -small -u -xm 
 
