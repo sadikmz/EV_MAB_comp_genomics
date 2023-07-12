@@ -21,21 +21,21 @@ bedtools getfasta -fi ${genome}.fna -bed ${genome}.rm.bed -fo RM.out.fasta
 BuildDatabase -name your_species_name ${genome}.fna
 RepeatModeler -database your_species_name -pa 32 -LTRStruct  
 
-### Miniature Inverted-repeat Transposable Elements (MITE)-Hunter 
+**Miniature Inverted-repeat Transposable Elements (MITE)-Hunter**<br />
 ~/apps/MITE-hunter/MITE_Hunter_manager.pl -i ${genome}.fna -g ${genome}_MH -c 32 -n 5 -S 12345678 –P 1
 ## MITE_Hunter_manager TEs:  ${genome}_MH_Step8_singlet.fa 
 
-### Tandem Repeat Finde, TRF, Piler, RepeatModeler2
+**Tandem Repeat Finder (TRF)** <br />
 trf ${genome}.fna 2 5 7 80 10 50 2000 -m -h 
 
-### Extract fasta: 
+**Convert TRF to fasta:** <br />
 source:TRFdat_to_bed.py #source: https://raw.githubusercontent.com/hdashnow/TandemRepeatFinder_scripts/master/TRFdat_to_bed.py
 
 ./TRFdat_to_bed.py --dat ${genome}.fna.2.7.7.80.10.50.500.dat --bed ${genome}.trf.bed 
 
 bedtools getfasta -fi ${genome}.fna -bed ${genome}.trf.bed  > ${genome}.trf.fasta
 
-#### PILER as described in https://www.drive5.com/piler/. 
+**PILER as described in https://www.drive5.com/piler/.** <br />
 pals -self ${genome}.fna hit.gff
 piler -trs hit.gff -out trs.gff
 mkdir fams
@@ -59,16 +59,17 @@ cd ../cons
 cat * > ../${genome}.piler_library.fasta
 
 
-# sequence redundancy removal - CD-HIT (v.4.8.1)
-## contatenate into one file  
+**sequence redundancy removal - CD-HIT** <br />
+**contatenate into one file ** 
 cat ${genome}.RPM.out.fasta ${genome}.RM.fasta ${genome}.RMod.out.fasta ${genome}.EDTA.out.fasta ${genome}.trf.fasta ${genome}_MH_Step8_singlet.fa ${genome}.piler_library.fasta > redundant_repeat_lib.fasta 
 
 cd-hit -i redundant_repeat_lib.fasta -d 0 -o redundant_repeat_lib.non_redun.fasta -c 0.80 -n 5 -G 1 -g 0 -M 0 -T 24
 
 
-**Step2:  Excluding highly conserved protein coding genes or multi-member gene families using BLASTP search (e-value threshold of 1e-10) against monocots protein database downloaded from EnsemblPlants (https://plants.ensembl.org/index.html) and Banana Genome Hub.**
+**Excluding highly conserved protein coding genes or multi-member gene families**<br /> 
+Here BLASTP search was used (e-value threshold of 1e-10) against monocots protein database downloaded from EnsemblPlants (https://plants.ensembl.org/index.html) and Banana Genome Hub.
 
-### Extract the fasta files the predicted repeats from the various tools  
+**Extract the fasta files the predicted repeats from the various tools** <br />
 
 rep_lib=redundant_repeat_lib.non_redun
 
@@ -83,21 +84,22 @@ blastx
 -num_threads 24 \
 -out $rep_lib.blastx.out
 
-#### convert blast hits to bed file and exclude the bed file interval from fasta
+**convert blast hits to bed file and exclude the bed file interval from fasta** <br />
 
-cut -f 1,4,5 $rep_lib.blastx.out | awk '{if ($2>$3) print $1,$3,$2,".",".","-"; else print $1,$2,$3,".",".","+";}' OFS='\t' | awk '{a=$2-1;print $1,a,$3,$4,$5,$6;}' OFS='\t'| bedtools sort > $rep_lib.protein_cleared.draft.bed
-bedtools merge -i $rep_lib.protein_cleared.draft.bed -s -c 6 -o distinct > $rep_lib.protein_cleared.final.bed
-# generate the index file
+cut -f 1,4,5 $rep_lib.blastx.out | awk '{if ($2>$3) print $1,$3,$2,".",".","-"; else print $1,$2,$3,".",".","+";}' OFS='\t' | awk '{a=$2-1;print $1,a,$3,$4,$5,$6;}' OFS='\t'| bedtools sort > $rep_lib.protein_cleared.draft.bed <br />
+bedtools merge -i $rep_lib.protein_cleared.draft.bed -s -c 6 -o distinct > $rep_lib.protein_cleared.final.bed <br />
+**generate the index file** <br />
 samtools faidx $rep_lib
-# reformate the index file to genome file
+**reformate the index file to genome file** <br />
 awk -v OFS='\t' {'print $1,$2'} $rep_lib.fai > $rep_lib.txt
-# final bed file to exclude
+**final bed file to exclude** <br />
 bedtools complement -i $rep_lib.protein_cleared.final.bed -g $rep_lib.txt > $rep_lib.final.bed
-# final protein coding gene free final de novo repeats
+**final protein coding gene free final de novo repeats** <br />
 bedtools getfasta -fi ${rep_lib}.fasta -bed $rep_lib.final.bed > $rep_file.final
 
-# Extensive de-novo Transposable Element Annotator (EDTA)
-## installation: https://github.com/oushujun/EDTA
+**Extensive de-novo Transposable Element Annotator (EDTA)** <br />
+installation: https://github.com/oushujun/EDTA <br />
+
 EDTA.pl \
 -genome ${genome}.fna \
 --species other \
@@ -109,7 +111,7 @@ EDTA.pl \
 --threads 48 \
 --debug 1
 
-# Final combined repeat identification and repeatitive sequence masking 
+**Final combined repeat identification and repeatitive sequence masking** <br />
 cat $rep_file.final ${genome}.fna.mod.EDTA.TElib.fa > ${genome}_repeat_lib.fasta
 
 **Step3: Annotating repeatitve elements **
