@@ -111,8 +111,8 @@ EDTA.pl \
 # Final combined repeat identification and repeatitive sequence masking 
 cat $rep_file.final ${genome}.fna.mod.EDTA.TElib.fa > ${genome}_repeat_lib.fasta
 
- Step3: Annotating repeatitve elements 
 ```
+
 # Annotation of structurally identified repeatitive elements
 
 ```bash
