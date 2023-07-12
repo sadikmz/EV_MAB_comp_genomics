@@ -1,5 +1,5 @@
 # Structural identification and annotation repeatitive elements
-
+```bash
 **Installations**:<br />
 conda create -n repeatmasking -c bioconda RepeatMasker repeatmodeler trf 
 
@@ -133,3 +133,4 @@ ${genome}.RM.final.out.fasta \
 --processors 48 \
 --pass2-rule 80-80-80 \
 --prefix ${genome}_RM_tesorter.out
+```
