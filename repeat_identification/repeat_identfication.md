@@ -1,7 +1,7 @@
-**Step1: Structural identification of repeatitive elements **
+**Step1: Structural identification of repeatitive elements**
 
-### RepeatProteinMask and RepeatMasker
-#### Installations:
+RepeatProteinMask and RepeatMasker
+Installations:
 conda create -n repeatmasking -c bioconda RepeatMasker repeatmodeler trf 
 
 ### path toassembled genome 
