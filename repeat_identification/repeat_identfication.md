@@ -1,5 +1,3 @@
-#!/bin/bash
-
 # RepeatProteinMask and RepeatMasker
 ## Installations:
 conda create -n repeatmasking -c bioconda RepeatMasker repeatmodeler trf 
