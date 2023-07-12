@@ -1,1 +1,2 @@
-# EVMB_Musa_comp_genomics
+# Comparative genomic of Enset (*Ensete ventricosum)*
+
