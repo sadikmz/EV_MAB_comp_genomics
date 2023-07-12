@@ -3,7 +3,7 @@
 Installations:
 conda create -n repeatmasking -c bioconda RepeatMasker repeatmodeler trf 
 
-Set path to assembled genome.
+Set path to assembled genome <br />
 genome=path_to_assembled_genome
 
 **RepeatProteinMask**
