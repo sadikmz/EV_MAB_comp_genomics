@@ -6,18 +6,18 @@ conda create -n repeatmasking -c bioconda RepeatMasker repeatmodeler trf
 **Set path to assembled genome** <br />
 genome=path_to_assembled_genome
 
-**RepeatProteinMask**
+**RepeatProteinMask**<br />
 RepeatProteinMask $genome -noLowSimple -pvalue 0.0001 
 cat ${genome}.annot | awk -v OFS='\t' '{print $4,$5,$6,$7,$8,$9,$10,$11}' | grep -v SeqID > repeatproteinmask.bed
 bedtools getfasta -fi ${genome}.fna -bed repeatproteinmask.bed -fo RM.out.fasta  
 
-**RepeatMasker**
+**RepeatMasker**<br />
 RepeatMasker -species Viridiplantae $genome -pa 8 
 
 RM2Bed.py ${genome}.fna.out
 bedtools getfasta -fi ${genome}.fna -bed ${genome}.rm.bed -fo RM.out.fasta  
 
-**RepeatModeler** 
+**RepeatModeler** <br />
 BuildDatabase -name your_species_name ${genome}.fna
 RepeatModeler -database your_species_name -pa 32 -LTRStruct  
 
