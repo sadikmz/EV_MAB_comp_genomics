@@ -23,7 +23,8 @@ RepeatModeler -database your_species_name -pa 32 -LTRStruct
 
 # Miniature Inverted-repeat Transposable Elements (MITE)-Hunter
 ~/apps/MITE-hunter/MITE_Hunter_manager.pl -i ${genome}.fna -g ${genome}_MH -c 32 -n 5 -S 12345678 –P 1
-## MITE_Hunter_manager TEs:  ${genome}_MH_Step8_singlet.fa 
+
+## MITE_Hunter_manager TEs:  ${genome}_MH_Step8_singlet.fa 
 
 # Tandem Repeat Finder (TRF)
 trf ${genome}.fna 2 5 7 80 10 50 2000 -m -h 
@@ -116,15 +117,15 @@ cat $rep_file.final ${genome}.fna.mod.EDTA.TElib.fa > ${genome}_repeat_lib.fasta
 # Annotation of structurally identified repeatitive elements
 
 ```bash
-RepeatMasker -nolow -no_is -norna -engine ncbi -lib ${genome}_repeat_lib.fasta ${genome}.fna -pa 12 -gff -poly -small -u -xm 
+RepeatMasker -nolow -no_is -norna -engine ncbi -lib ${genome}_repeat_lib.fasta ${genome}.fna -pa 12 -gff -poly -u -xsmall
 
 RM2Bed.py ${genome}.fna.out
 bedtools getfasta -fi ${genome}.fna -bed ${genome}.rm.bed -fo ${genome}.RM.final.out.fasta  
 
 ### use the hard masked coordinate bed file for soft masking in bedtools 
-bedtools maskfasta \
--fi ${genome}.fna \
--bed ${genome}.rm.bed -fo ${genome}.softmasked.1.fna -soft
+# bedtools maskfasta \
+# -fi ${genome}.fna \
+# -bed ${genome}.rm.bed -fo ${genome}.softmasked.1.fna -soft
 
 # Annotate RepeatMasker output repeats using TEsorter
 TEsorter \
