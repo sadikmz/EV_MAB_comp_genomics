@@ -92,7 +92,7 @@ do
 
 BASENAME=$(basename $i | sed -e "s/.fna/g")
 
-# contigs contiguity 
+# Contigs contiguity 
 ~/apps/gfastats/build/bin/gfastats \
 -b s \
 -f ${i}.fna  \
@@ -103,7 +103,7 @@ BASENAME=$(basename $i | sed -e "s/.fna/g")
 --sort descending > ${i}.gfastats.summmary.txt
 
 
-# BUSCO genes 
+# Completness of BUSCO genes 
 
 busco  \
 -i ${i}.fna \
