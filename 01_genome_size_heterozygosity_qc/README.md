@@ -1,7 +1,7 @@
 
-Organzing landrace Mazia and Bedadeti reads stLRF/NGS reads 
+# Organzing genomic reads (stLRF/NGS) of the two enset landraces: landrace Mazia and Bedadeti
 
-```bash
+```sh
 prog=~/apps/jellyfish/
 wgs_dir=home/data/wgs
 
@@ -48,7 +48,7 @@ mazia
 bedadeti
 ```
 
-Trimming adapter sequences and poor quality reads, and generating k-mer frequency tables and GenomeScope statistics. 
+# Trimming adapter sequences and poor quality reads, and generating k-mer frequency tables and GenomeScope statistics. 
 
 
 ```bash
@@ -79,4 +79,40 @@ do
         --fitted_hist
         done
 done
+````
+
+# Assess assembly contiguity and completness  
+```bash
+# Input files: 
+# mazia.fna 
+# bedadeti.fna
+
+for i in *.fna
+do 
+
+BASENAME=$(basename $i | sed -e "s/.fna/g")
+
+# contigs contiguity 
+~/apps/gfastats/build/bin/gfastats \
+-b s \
+-f ${i}.fna  \
+-s s \
+-t \
+--seq-report \
+--stats \
+--sort descending > ${i}.gfastats.summmary.txt
+
+
+# BUSCO genes 
+
+busco  \
+-i ${i}.fna \
+-m genome \
+-l embryophyta_odb10 \
+-c 16 \
+-o busco.${i}.out \
+--long \
+-f
+
+done 
 ````
