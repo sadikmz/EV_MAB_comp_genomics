@@ -13,12 +13,11 @@ if (any(installed_packages == FALSE)) {
 library(tidyverse)
 library(phylotools)
 
-EV_AED25_TE.OG_GeneCount %>% filter(Orthogroup == "OG0000332")
 
 ## combine GO terms of all speceis into one file 
 
 Species_List <- c("mazia.AED25","bedadeti.AED25","Musa_acuminata",
-                  "Musa_balbisiana")
+                  "Musa_balbisiana","Ensete_glaucum")
 
 dir.create("absoute_path_to_orthofinder/go_terms/")
 
@@ -102,78 +101,43 @@ GO_terms_EV_AED25_MAB_v2 %>% head()
 
 # merge all genes with with out with out GO terms 
 
-# bedadeti and mazia predicted proteins AED=0-0.40 and aa lenth >= 70 softlinked to working directory from blasp direcoty 
+# bedadeti and mazia predicted proteins AED=0-0.40 and aa lenth >= 70 softlinked to working directory from blasp direcoty
+
+# a combined predicted proteins of mazia and bedadeti, Ensete glaucum, and Musa species.
+
 library(phylotools)
 
-# EV_EG_MUSA = c("musa_ac","musa_ba","mazia","bedadeti")
+Prot_List = c("Ensete_glaucum",  "Musa_acuminata","Musa_balbisiana","mazia.AED25","bedadeti.AED25")
 
-# EV_EG_MABS_prots_ID_len <- c()
-# 
-# for (Each_MUSA_EG in EV_EG_MUSA) {
-#   EV_EG_MABS_prots_ID_len <- 
-# read.fasta(paste0("../musa_predicted_protiens/", Each_MUSA_EG, ".fasta")) %>%
-#   mutate(prot_len = nchar(seq.text),
-#          genome = Each_MUSA_EG) %>%
-#     select(seq.name, prot_len, genome) %>%
-#     rbind(
-#       EV_EG_MABS_prots_ID_len
-#     )
-# }
+Ensete_MUSA_seq <- c()
 
+for (K in Prot_List) {
+  Ensete_MUSA_seq <-
+read.fasta(paste0("data_pred_prots/", K, ".fasta")) %>%
+  mutate(prot_len = nchar(seq.text),
+         genome = Prot_List) %>%
+    rbind(Ensete_MUSA_seq)
+}
 
-
-Ensete_MUSA_seq_TE <-
-  read.delim("~/rstudio/bgimazia_musa/reannotation_analysis/mazia_reannotation//Ensete_MUSA_seq.txt") %>% 
-  filter(genome != "mazia", genome != "bedadeti", genome != "Ensete_glaucum", genome != "Musa_schizocarpa") %>% 
-  # rbind(
-  #   read.fasta("~/rstudio/bgimazia_musa/reannotation_analysis/mazia_reannotation/gene_prediction/gene_models/bedadeti.AED.0-0.40.non_TE.fasta") %>%
-  #     mutate(genome = "bedadeti"),
-  #   read.fasta("~/rstudio/bgimazia_musa/reannotation_analysis/mazia_reannotation/gene_prediction/gene_models/mazia.AED.0-0.40.non_TE.fasta") %>%
-  #     mutate(genome = "mazia") 
-  # ) 
-  rbind(read.fasta("~/rstudio/bgimazia_musa/reannotation_analysis/mazia_reannotation/TE_inserted_prots/bedadeti.longest_isoforms.fasta") %>%
-          mutate(genome = "bedadeti"),
-        read.fasta("~/rstudio/bgimazia_musa/reannotation_analysis/mazia_reannotation/TE_inserted_prots/mazia.longest_isoforms.fasta") %>%
-          mutate(genome = "mazia")) #%>%colnames()
-# select(-gene_id,-length))
 
 # Ensete_MUSA_seq %>% distinct(genome)
 
-GO_terms_EV_AED25_TE <-
-  Ensete_MUSA_seq_TE %>%
+GO_terms_EV_AED25_MAB_v3 <-
+  Ensete_MUSA_seq %>%
   select(-seq.text) %>% 
-  # EV_EG_MABS_prots_ID_len %>% 
-  # filter(genome == "musa_it") %>% 
-  # mutate(seq.name.mit = str_extract(seq.name,"\\w+[^\\s]"),
-  #        seq.name = case_when(str_detect(seq.name.mit,"^\\Mi_") ~ seq.name.mit,
-  #                             TRUE ~ seq.name)) %>% 
-  # dplyr::select(-seq.name.mit) %>% 
   left_join(
     GO_terms_EV_AED25_MAB_v2 %>%
       dplyr::rename(seq.name = genes) ) %>% 
   mutate(GO_terms = str_replace_na(GO_terms, 'NA'),
-         genomes = str_replace_na(genomes,"NA" ),
-         genomes = str_replace_all(genomes,c("mazia.AED25"="Ensete_ventricosum_mazia",
+         genome = str_replace_na(genome,"NA" ),
+         genome = str_replace_all(genome,c("mazia.AED25"="Ensete_ventricosum_mazia",
                                              "bedadeti.AED25"="Ensete_ventricosum_bedadeti")),
-         genomes = str_replace_na(genomes,"NA" )) %>%
-  # filter(GO_terms != "NA") %>%
-  # filter(genomes == "NA") %>%
-  mutate( genomes = case_when(genome == "bedadeti" & genomes == "NA" ~"Ensete_ventricosum_bedadeti",
-                              genome == "mazia" & genomes == 'NA' ~ "Ensete_ventricosum_mazia",
-                              # genome == "ensete_gl" & genomes == 'NA' ~ "Ensete_glaucum",
-                              # genome == "musa_sc" & genomes == 'NA' ~ "Musa_schizocarpa",
-                              genome == "musa_ba" & genomes == 'NA' ~ "Musa_balbisiana",
-                              genome == "musa_ac" & genomes == 'NA' ~  "Musa_acuminata",
-                              genome == "NA" & genomes == 'Musa_acuminata' ~  "Musa_acuminata",
-                              genome == "Musa_acuminata" & genomes == 'NA' ~  "Musa_acuminata",
-                              genome == "Musa_balbisiana" & genomes == 'NA' ~  "Musa_balbisiana",
-                              genome == "NA" & genomes == 'Musa_balbisiana' ~  "Musa_balbisiana",
-                              TRUE ~ genomes)) 
+         genome = str_replace_na(genome,"NA" )) 
 
 
-# GO terms with associated description 
+# Add updated descriptions of GO-terms to IDs from GO.db that contain annotation maps describing the entire Gene Ontology.
 
-# BiocManager::install("GO.db")
+BiocManager::install("GO.db")
 library(GO.db)
 
 goterms = unlist(Term(GOTERM))
@@ -186,12 +150,12 @@ colnames(goterms_table) = c("GO_terms", "description")
 library(tidyverse)
 
 goterms_table %>% head()
-GO_terms_EV_AED25_TE %>% filter(GO_terms != "NA") %>% head()
+GO_terms_EV_AED25_MAB_v3 %>% filter(GO_terms != "NA") %>% head()
 
 
 ## attached GO temrs with gene id
-GO_terms_EV_AED25_TE_MAB_desc <-
-  GO_terms_EV_AED25_TE %>%
+GO_terms_EV_AED25_MAB_desc <-
+  GO_terms_EV_AED25_MAB_v3 %>%
   distinct() %>%
   left_join(
     goterms_table
@@ -234,8 +198,8 @@ GO_terms_EV_AED25_TE_MAB_desc <-
 
 
 ## genrate GO_terms labels 
-GO_terms_EV_AED25_TE_MAB_desc.v1 <-
-  GO_terms_EV_AED25_TE_MAB_desc %>% 
+GO_terms_EV_AED25_MAB_desc.v1 <-
+  GO_terms_EV_AED25_MAB_desc %>% 
     # separate(seq.name,into = "seq.name", sep = ' ') %>%
   distinct() %>%
   mutate(genomes_short = str_replace_all(genomes, c("Ensete_ventricosum_bedadeti"="EV (Bedadeti)",
@@ -245,12 +209,6 @@ GO_terms_EV_AED25_TE_MAB_desc.v1 <-
                                                     "Musa_acuminata" ="MA"
                                                     # "Musa_schizocarpa" = "MS"
   )))
-
-GO_terms_EV_AED25_TE_MAB_desc.v1 %>% tail(n=10)
-
-# GO_terms_EV_AED25_MAB_desc.v1 <-   
-# GO_terms_EV_AED25_MAB_desc.v1$genomes_short = factor(GO_terms_EV_AED25_MAB_desc.v1$genomes_short, levels = c("EV (Bedadeti)","EV (Mazia)",
-# "EG","MB","MA","MS")) 
 
 
 ## combine GO_term with Orthogroups parse gene list: all_assigned_OGsgenes
@@ -271,64 +229,20 @@ GO_terms_EV_AED25_TE_MAB_desc.v1 %>% tail(n=10)
 #   ) %>%
 #   mutate(Orthogroup = str_replace_na(Orthogroup,"")) 
 
-GO_terms_EV_AED25_OGs_genes
+
 GO_terms_EV_AED25_MAB_OGs_genes <-
-  assigned_unassigned_OGs_genes_TE_EV %>%
-  # mutate(genome = str_replace_all(genome,c("musa_ac"="Musa_acuminata",
-  #                                          "musa_ba" = "Musa_balbisiana"))) %>%
-  left_join(GO_terms_EV_AED25_TE_MAB_desc.v1 %>%
-              filter(!str_detect(genome,"^Musa")) #%>%
-              # mutate(genome = str_replace_all(genome,c("mazia"="Ensete_ventricosum_mazia",
-              #                                          "bedadeti" = "Ensete_ventricosum_bedadeti")))
-              ) %>%
+  assigned_unassigned_OGs_genes_EV_EG_MAB %>%
+  mutate(genome = str_replace_all(genome,c("musa_ac"="Musa_acuminata",
+                                           "musa_ba" = "Musa_balbisiana"))) %>%
+  left_join(GO_terms_EV_AED25_MAB_desc.v1 %>%
+              mutate(genome = str_replace_all(genome,c("mazia"="Ensete_ventricosum_mazia",
+                                                       "bedadeti" = "Ensete_ventricosum_bedadeti")))) %>%
   mutate(GO_terms  = str_replace_na(GO_terms,"NA")) %>%
     select(-genomes,-genomes_short)  %>%
   filter(GO_terms !="NA") 
   
 
-  
-#   
-#   filter(genome == "musa_ac", str_detect(Orthogroup, "^OG")) %>%
-#   filter(str_detect(seq.name,"Macma4_Mt_g00010.1"))
-# #   distinct(genome)
-# 
-# GO_terms_EV_AED25_MAB_OGs_genes %>% filter(genomes=="NA")
-GO_terms_EV_AED25_MAB_OGs_genes  %>% 
-  filter(genome == "Musa_balbisiana") %>%
-  # filter(GO_terms !="NA") %>%
-  arrange(desc(Orthogroup)) %>%
-  nrow()
-
-
-GO_terms_EV_AED25_TE_MAB_desc.v1 %>%
-  filter(genome=="bedadeti") %>%
-  select(seq.name) %>%
-  distinct() %>% 
-  nrow()
-
-
-GO_terms_EV_AED25_TE_MAB_desc.v1 %>%
-  filter(genome=="mazia") %>%
-  select(seq.name) %>%
-  distinct() %>% 
-  # head(n=20)
-  nrow()
-
-
-
-assigned_unassigned_OGs_genes_EV_EG_MAB %>%
-  filter(genome=="Ensete_ventricosum_bedadeti") %>%
-  distinct() %>%
-  head()
-
-assigned_unassigned_OGs_genes_EV_EG_MAB %>%
-  filter(genome=="Ensete_ventricosum_mazia") %>%
-  distinct() %>%
-  nrow()
-
-
-
-save.image(file = "../../reannotation_analysis/mazia_reannotation/orthofinder/EV_AED25_MAB/OrthoFinder.EV.AED25.TE.RData")
-# load(file = "../go_terms/GO_terms_EV170_EG_MAB.RData")
+# save
+save.image(file = "OrthoFinder.EV.AED25.MAB.RData")
 
 

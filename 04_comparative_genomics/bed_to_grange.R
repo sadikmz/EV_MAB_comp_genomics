@@ -1,3 +1,4 @@
+# Code source: https://rdrr.io/github/davetang/bedr/src/R/bed_to_granges.R
 #' BED to GRanges
 #'
 #' This function loads a BED-like file and stores it as a GRanges object.

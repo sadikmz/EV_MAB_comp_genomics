@@ -3,6 +3,16 @@
 
 # Load library
 
+
+# List of package required
+packages = c("tidyverse", "phylotools", "janitor")
+
+# Install packages missing packages.
+installed_packages <- packages %in% rownames(installed.packages())
+if (any(installed_packages == FALSE)) {
+  install.packages(packages[!installed_packages])
+}
+
 library(tidyverse)
 library(phylotools)
 library(janitor)
@@ -43,7 +53,8 @@ longest_isoform <-
 
 uncleaned_longest_isoform_fasta <-
   longest_isoform %>% 
-  select(gene.name) %>% duplicated() %>%  as_tibble() %>% 
+  select(gene.name) %>% duplicated() %>%  
+  as_tibble() %>% 
   bind_cols(longest_isoform) %>% 
   filter(value == "FALSE")  %>% # if there are equale lenght isoforms, 
   # check their aa length correspondes to T/F assignment in value parameter. 
