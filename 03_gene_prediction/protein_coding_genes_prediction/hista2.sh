@@ -19,8 +19,6 @@ cpus=$cpus
 softmasked_genome=softmasked.fna # 
 BASENAME=$(echo $softmasked_genome | sed "s/.fna//g")
 
-# Prediction of protein coding genes using Braker
-
 ## RNA-seq alignment using hisat2 (v2.1.0)
 
 hisat2-build  $softmasked_genome ${softmasked_genome}.index -p $cpus --large-index
@@ -39,5 +37,4 @@ hisat2 \
 
 
 stringtie -o ${BASENAME}_rnaseq.gff ${BASENAME}.rnaseq.bam  -p $cpus -A gene_abundance.out
-
 
