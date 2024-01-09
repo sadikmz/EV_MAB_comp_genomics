@@ -79,17 +79,6 @@ TEsorter_annotation.v1 <-
 
 TEsorter_annotation.v2 <-
   predicted_prot_TEsorter_joined.AED %>% 
-  # filter(genome != "bedadeti.20", 
-  #        genome != "bedadeti.30",
-  #        genome != "bedadeti.35",
-  #        genome != "bedadeti.40",
-  #        #genome != "bedadeti.40",
-  #         genome != "mazia.20",
-  #        genome != "mazia.30",
-  #        genome != "mazia.35",
-  #        genome != "mazia.40",
-  #        #genome != "mazia.40"
-  #        ) %>%
   mutate(TE = str_replace(TE,"mixture\\:mixture","mixture"),
          TE = str_remove(TE,"\\:unknown"),
          genome = str_replace_all(genome, c( #"Musa_schizocarpa" = "MS", 
@@ -394,7 +383,7 @@ TE_frequency_per_gene %>%
     
   )
 
-ggsave("tesorter_out/TE_sorter.EV_AED40.MAB.frequency.tiff", width=5, height=5)
+ggsave("tesorter_out/TE_sorter.EV_MAB.frequency.tiff", width=5, height=5)
 
 
 ### summary tables 
@@ -402,20 +391,10 @@ ggsave("tesorter_out/TE_sorter.EV_AED40.MAB.frequency.tiff", width=5, height=5)
 TEsorter_annotation.v2 %>% 
   group_by(genome, seq.name) %>%
   summarise(TE_count = n()) %>%
-  # head()
   ungroup() %>%
   group_by(genome) %>%
   summarise(count = n(), max = max(TE_count)) %>%
-  write.table("tesorter_out/count_TE_inserted_gene.AED40.txt", col.names = T, row.names = F,
+  write.table("tesorter_out/count_TE_inserted_gene.txt", col.names = T, row.names = F,
               quote = F, sep = '\t')
   
 
-TEsorter_annotation.v2 %>% 
-  group_by(genome, seq.name) %>%
-  summarise(TE_count = n()) %>%
-  ungroup() %>% 
-  filter(TE_count >=1) %>% 
-  select(-TE_count) %>%
-  group_by(genome) %>%
-  summarise(count=n())
-  head()

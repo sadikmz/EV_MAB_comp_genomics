@@ -121,7 +121,7 @@ cat AED_fasta/AED_fasta_split/mazia.maker.proteins.0-0.29_AED.fasta AED_fasta/AE
 
 # run busco 
 
-AED_list=$(cat AED_list.0.txt) # max AED values of splitted gene models (eg. 0-0.39_AED in mazia.maker.proteins.0-0.39_AED.fasta) 
+AED_list=$(cat AED_list.0.txt) # AED_list.0.txt contain parsed AED values of gene models in AED_fasta/AED_fasta_split
 
 #mkdir collect_split
 AED_list="0-0.30_AED"

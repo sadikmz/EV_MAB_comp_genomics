@@ -1,4 +1,4 @@
- # <h1 style="text-align: center;">What makes a banana false? Comparative genomics reveals how the Ethiopian orphan staple *Ensete ventricosum* differs from its related banana A and B sub-genomes</h1>
+  <h1 style="text-align: center;">What makes a banana false? Comparative genomics reveals how the Ethiopian orphan staple *Ensete ventricosum* differs from its related banana A and B sub-genomes</h1>
 
 # Table of contents:
 1. Genome size, heterozygosity and completeness evaluation

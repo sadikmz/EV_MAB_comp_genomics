@@ -12,18 +12,27 @@
 
 
 # TEsorter
+cpus=$cpus
+BASENAME=$(echo $softmasked_genome | sed "s/.fna//g")
 
-# Predicted proteins of EV mazia and Bedadeti (AED<=0.25), MA and MB.
+# Predicted proteins of EV landraces  [Mazia and Bedadeti (AED<=0.25)], Ensete glaucum (EG), Musa acuminata (MA) and Musa balbisiana (MB). Predicted proteins of Musa species and EG were obtained from https://banana-genome-hub.southgreen.fr/
+# ls -lht ~/data | awk '{print $9}'
+# EV_mazia.fna 
+# EV_bedadeti.fna
+# Musa_acuminata.fna 
+# Musa_balbisiana.fna 
 
-for i in EV_mazia EV_bedadeti Musa_acuminata Musa_balbisiana 
+for i in ~/data/*.fna 
 do 
-TEsorter \
-${i}.fasta \
---hmm rexdb-plant \
---seq-type  prot \
---processors 32 \
---pass2-rule 80-80-80 \
---prefix ${i}_TE.rexdb-plant
+	BASENAME=$(basename $i| sed 's/.fna//g')
+
+	TEsorter \
+	${i}.fna \
+	--hmm rexdb-plant \
+	--seq-type  prot \
+	--processors 32 \
+	--pass2-rule 80-80-80 \
+	--prefix ${i}_TEsorter.rexdb-plant
 done
 
 
