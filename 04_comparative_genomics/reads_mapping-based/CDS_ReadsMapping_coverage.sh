@@ -91,13 +91,8 @@ cut -f1,2 $PATH_GENOMES/${ref_genome}.fna.fai > $PATH_GENOMES/${ref_genome}.size
 bedtools complement -i $PATH_GENOMES/${ref_genome}.gene.bed -g $PATH_GENOMES/${ref_genome}.sizes > $PATH_GENOMES/${ref_genome}.gene.complement.bed 
 cat $PATH_GENOMES/${ref_genome}.gene.bed $PATH_GENOMES/${ref_genome}.gene.complement.bed | sort | uniq > $PATH_GENOMES/${ref_genome}.gene_complement.bed 
 
-## For gene and gene-complement 
-samtools view -b -h -L $PATH_GENOMES/${query_genotype}.gene_complement.bed $out.allMapped.sorted.markdup.bam > $out.allMapped.gene_complement.bam
-# samtools view -b -h -L $PATH_GENOMES/EV_${ref_genome}.gene_complement.bed $out.merged.primary.allMapped.bam > $out.primary.allMapped.gene_complement.bam 
-
-## For gene only 
+## reads mapping to CDS
 samtools view -b -h -L $PATH_GENOMES/${query_genotype}.gene.bed $out.allMapped.gene_complement.bam > $out.allMapped.gene.bam
-# samtools view -b -h -L $PATH_GENOMES/EV_${ref_genome}.gene.bed $out.primary.allMals -pped.gene_complement.bam > $out.allMapped.primary.gene.bam
 
 ## index bam files 
 samtools index $out.allMapped.gene.bam
