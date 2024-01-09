@@ -8,7 +8,7 @@ module load GCC/10.2.0 OpenMPI/4.0.5 GCCcore/10.3.0
 
 #1.  mapping panEV reads against Musa acuminata and Musa balbisiana genomes. Prefix of PanEV reads were save as EV_WGS.list
 
-```bash
+
 PATH_GENOMES=/home/l/lfrwtp/data/genomes/
 PATH_WGS=/home/l/lfrwtp/data/EV_wgs
 cpus=48
@@ -108,5 +108,5 @@ samtools index $out.allMapped.gene.bam
 
 bamCoverage -b $out.allMapped.gene.bam --numberOfProcessors $cpus -o $out.allMapped.gene.coverage.bw
 bedtools coverage -b $out.allMapped.gene.bam -a $PATH_GENOMES/${query_genotype}.gene.bed > $out.allMapped.gene.cov.bed
-```
+
 
