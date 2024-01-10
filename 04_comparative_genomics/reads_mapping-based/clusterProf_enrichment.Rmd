@@ -1,0 +1,453 @@
+---
+title: "Enrichment of reads mapping based EV and Musa specific genes"
+author: "Sadik M"
+date: "2023-07-14"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load packages
+
+```{r load_packges, echo=FALSE}
+library(topGO)
+library(GO.db)
+library(biomaRt)
+BiocManager::install("Rgraphviz")
+library(Rgraphviz)
+library(tidyverse)
+library(ggtext)
+library(clusterProfiler)
+
+```
+
+# Load final tidy data containg GO terms, OGs and gene list for all speceis including Musa itinerans 
+```{r data}
+
+## data 
+
+GO_temrs_PanReadsMapping_EV_mazia_bedadeti_gene_combined <-
+  # GO_terms_EV_AED25_MAB_monocots_OGs_genes_blastp %>% 
+  PanMusa_AABB_EV_mazia_bedadeti_gene_combined_GO %>%
+    filter(str_detect(GO_terms,"GO")) %>%
+  mutate(gene_id = case_when(!str_detect(seq.name,"EV") ~ seq.name,
+                             TRUE ~ gene_id))
+
+  dir.create(paste0(path_out,"go_terms_enrichment"))
+```
+
+# For EV specific genes 
+
+## clusterProfile 
+```{r EV_specific_clusProf}
+
+# create placeholder for EV_bedadeti specific ernrichemt outout
+EV_specific_clustPro_GOenrich <- c()
+
+
+  # print(CUTOFF)
+  # Extract targe genes set
+  
+  target_genes <-
+    GO_temrs_PanReadsMapping_EV_mazia_bedadeti_gene_combined %>%
+    filter(str_detect(seq.name, "EV")) %>%
+    dplyr::select(gene_id) %>%
+    distinct()
+  
+  
+  # Extract global genes set
+  GO_temrs_global_genes <-
+    GO_temrs_PanReadsMapping_EV_mazia_bedadeti_gene_combined %>%
+    dplyr::select(GO_terms, gene_id)
+  
+  
+  target_genes_list <-  unique(target_genes$gene_id)
+  
+  enriched_out <-
+    enricher(gene = target_genes_list, TERM2GENE = GO_temrs_global_genes)
+  
+  if (length(enriched_out) != 0) {
+    # convert it to dataframe and tidy-up result
+    enriched_out_df <- enriched_out@result %>%
+      #separate ratios into 2 columns of data
+      separate(BgRatio,
+               into = c("size.term", "size.category"),
+               sep = "/") %>%
+      separate(
+        GeneRatio,
+        into = c("size.overlap.term", "size.overlap.category"),
+        sep = "/"
+      ) %>%
+      #convert to numeric
+      mutate_at(
+        vars(
+          "size.term",
+          "size.category",
+          "size.overlap.term",
+          "size.overlap.category"
+        ),
+        as.numeric
+      ) %>%
+      #Calculate k/K
+      mutate("k.K" = size.overlap.term / size.term) %>%
+      mutate(frac_cov = CUTOFF,
+             category = "EV specific")
+    
+    
+    ## add data
+    
+    EV_specific_clustPro_GOenrich <-
+      enriched_out_df  %>% # add it to your list
+      rbind(EV_specific_clustPro_GOenrich)
+    
+    
+  }
+  
+# remove temporary files
+
+rm(GO_temrs_global_genes,
+   enriched_out,
+   target_genes_list,
+   enriched_out_df)
+
+# tidyup output file
+
+row.names(EV_specific_clustPro_GOenrich) = NULL
+```
+
+### ClusterProfiler enrichment plot 
+```{r plot_clustProf}
+EV_specific_clustPro_GOenrich %>% 
+  dplyr::select(-geneID, -Description) %>% 
+  dplyr::rename(GO_terms = ID) %>%
+  left_join(
+    go_odb_aspects_description
+  ) %>% 
+  mutate(aspects = str_replace_all(aspects, c("biological_process" = "Biological process",
+                                              "molecular_function" = "Molecular function",
+                                              "cellular_component" = "Cellular component")),
+         "log10_pvalue"=log10(p.adjust)) %>% 
+  
+  # filter(p.adjust <= 0.4) %>% 
+  dplyr::filter(description != "NA") %>% 
+  dplyr::filter(aspects == 'Biological process') %>%
+  dplyr::filter(p.adjust < 0.05) %>%
+  ggplot(aes(x=reorder(description, p.adjust), #Reorder gene sets by k/K values
+             y=k.K, fill = log10_pvalue)) +
+  geom_col( width = 0.8) +
+  geom_text(aes(label = Count), hjust=1.1, vjust= 0.5, size=3, fontface = "bold")+
+  theme_classic() +
+  #Some more customization to pretty it up
+  #Flip x and y so long labels can be read
+  coord_flip() +
+  #fix labels
+  labs(y="Proportion of significant genes over<br>the total genes" ,
+       x="GO terms description for gene set (Specific to MABS specific)",
+  ) +
+  scale_fill_gradientn(colours = terrain.colors(10),
+                       name  = "log10 pvalue")+
+  theme( 
+    axis.title.x = element_markdown(size = 9, face = "bold"),
+    axis.title.y = element_blank(),
+    axis.line.x = element_line(),
+    axis.line.y = element_line(),
+    plot.title = element_markdown(face = "bold"),
+    axis.text.y = element_markdown(size = 9,face = "bold"),
+    axis.text.x = element_markdown(size = 9),
+    legend.title = element_text(size=9),
+    legend.text = element_text(size = 8),
+    legend.position = "top"
+  )
+```
+
+# For Musa acuminata specific genes  
+
+## Cluterprofiler enrichment 
+```{r MA_specific_clusProf}
+
+# create placeholder for EV_bedadeti specific ernrichemt outout
+MA_specific_clustPro_GOenrich <- c()
+
+  # print(CUTOFF)
+  # Extract targe genes set
+  
+  target_genes <-
+    GO_temrs_PanReadsMapping_EV_mazia_bedadeti_gene_combined %>%
+    filter(str_detect(gene_id,"Mac")) %>%
+    dplyr::select(gene_id) %>%
+    distinct()
+  
+  
+  # Extract global genes set
+  GO_temrs_global_genes <-
+    GO_temrs_PanReadsMapping_EV_mazia_bedadeti_gene_combined %>%
+    dplyr::select(GO_terms, gene_id)
+  
+  
+  target_genes_list <-  unique(target_genes$gene_id)
+  
+  enriched_out <-
+    enricher(gene = target_genes_list, TERM2GENE = GO_temrs_global_genes)
+  
+  if (length(enriched_out) != 0) {
+    # convert it to dataframe and tidy-up result
+    enriched_out_df <- enriched_out@result %>%
+      #separate ratios into 2 columns of data
+      separate(BgRatio,
+               into = c("size.term", "size.category"),
+               sep = "/") %>%
+      separate(
+        GeneRatio,
+        into = c("size.overlap.term", "size.overlap.category"),
+        sep = "/"
+      ) %>%
+      #convert to numeric
+      mutate_at(
+        vars(
+          "size.term",
+          "size.category",
+          "size.overlap.term",
+          "size.overlap.category"
+        ),
+        as.numeric
+      ) %>%
+      #Calculate k/K
+      mutate("k.K" = size.overlap.term / size.term) %>%
+      mutate(
+             category = "MA specific")
+    
+    
+    ## add data
+    
+    MA_specific_clustPro_GOenrich <-
+      enriched_out_df  %>% # add it to your list
+      rbind(MA_specific_clustPro_GOenrich)
+    
+    
+  }
+  
+  
+
+# remove temporary files
+
+rm(GO_temrs_global_genes,
+   enriched_out,
+   target_genes_list,
+   enriched_out_df)
+
+# tidyup output file
+
+row.names(MA_specific_clustPro_GOenrich) = NULL
+
+```
+
+### Plot clusterProfiler enrichment
+```{r plot_clustProf}
+MA_specific_clustPro_GOenrich %>% 
+  dplyr::select(-geneID, -Description) %>% 
+  dplyr::rename(GO_terms = ID) %>%
+  left_join(
+    go_odb_aspects_description
+  ) %>% 
+  mutate(aspects = str_replace_all(aspects, c("biological_process" = "Biological process",
+                                              "molecular_function" = "Molecular function",
+                                              "cellular_component" = "Cellular component")),
+         "log10_pvalue"=log10(p.adjust)) %>% 
+  
+  # filter(p.adjust <= 0.4) %>% 
+  dplyr::filter(description != "NA") %>% 
+  dplyr::filter(aspects == 'Biological process') %>%
+  dplyr::filter(p.adjust < 0.05) %>%
+  ggplot(aes(x=reorder(description, p.adjust), #Reorder gene sets by k/K values
+             y=k.K, fill = log10_pvalue)) +
+  geom_col( width = 0.8) +
+  geom_text(aes(label = Count), hjust=1.1, vjust= 0.5, size=3, fontface = "bold")+
+  theme_classic() +
+  coord_flip() +
+  #fix labels
+  labs(y="Proportion of significant genes over<br>the total genes" ,
+       x="GO terms description for gene set (Specific to MABS specific)",
+       #title = "Musa species specific" 
+  ) +
+  scale_fill_gradientn(colours = terrain.colors(10),
+                       name  = "log10 pvalue")+
+  
+  # scale_fill_continuous(name  = "log10 pvalue")+
+  theme( 
+    axis.title.x = element_markdown(size = 9, face = "bold"),
+    axis.title.y = element_blank(),
+    axis.line.x = element_line(),
+    axis.line.y = element_line(),
+    plot.title = element_markdown(face = "bold"),
+    axis.text.y = element_markdown(size = 9,face = "bold"),
+    axis.text.x = element_markdown(size = 9),
+    legend.title = element_text(size=9),
+    legend.text = element_text(size = 8),
+    legend.position = "top"
+  )
+```
+
+# For Musa balbisiana specific genes  
+
+## Cluterprofiler enrichment 
+```{r MA_specific_clusProf}
+
+# create placeholder for EV_bedadeti specific ernrichemt outout
+MB_specific_clustPro_GOenrich <- c()
+
+  # print(CUTOFF)
+  # Extract targe genes set
+  
+  target_genes <-
+    GO_temrs_PanReadsMapping_EV_mazia_bedadeti_gene_combined %>%
+    filter(str_detect(gene_id,"Mba")) %>%
+    dplyr::select(gene_id) %>%
+    distinct()
+  
+  
+  # Extract global genes set
+  GO_temrs_global_genes <-
+    GO_temrs_PanReadsMapping_EV_mazia_bedadeti_gene_combined %>%
+    dplyr::select(GO_terms, gene_id)
+  
+  
+  target_genes_list <-  unique(target_genes$gene_id)
+  
+  enriched_out <-
+    enricher(gene = target_genes_list, TERM2GENE = GO_temrs_global_genes)
+  
+  if (length(enriched_out) != 0) {
+    # convert it to dataframe and tidy-up result
+    enriched_out_df <- enriched_out@result %>%
+      #separate ratios into 2 columns of data
+      separate(BgRatio,
+               into = c("size.term", "size.category"),
+               sep = "/") %>%
+      separate(
+        GeneRatio,
+        into = c("size.overlap.term", "size.overlap.category"),
+        sep = "/"
+      ) %>%
+      #convert to numeric
+      mutate_at(
+        vars(
+          "size.term",
+          "size.category",
+          "size.overlap.term",
+          "size.overlap.category"
+        ),
+        as.numeric
+      ) %>%
+      #Calculate k/K
+      mutate("k.K" = size.overlap.term / size.term) %>%
+      mutate(
+             category = "MA specific")
+    
+    
+    ## add data
+    
+    MB_specific_clustPro_GOenrich <-
+      enriched_out_df  %>% # add it to your list
+      rbind(MB_specific_clustPro_GOenrich)
+    
+    
+  }
+  
+  
+
+# remove temporary files
+
+rm(GO_temrs_global_genes,
+   enriched_out,
+   target_genes_list,
+   enriched_out_df)
+
+# tidyup output file
+
+row.names(MB_specific_clustPro_GOenrich) = NULL
+
+```
+
+### Plot clusterProfiler enrichment
+```{r plot_clustProf}
+MB_specific_clustPro_GOenrich %>% 
+  dplyr::select(-geneID, -Description) %>% 
+  dplyr::rename(GO_terms = ID) %>%
+  left_join(
+    go_odb_aspects_description
+  ) %>% 
+  mutate(aspects = str_replace_all(aspects, c("biological_process" = "Biological process",
+                                              "molecular_function" = "Molecular function",
+                                              "cellular_component" = "Cellular component")),
+         "log10_pvalue"=log10(p.adjust)) %>% 
+  
+  # filter(p.adjust <= 0.4) %>% 
+  dplyr::filter(description != "NA") %>% 
+  dplyr::filter(aspects == 'Biological process') %>%
+  dplyr::filter(p.adjust < 0.05) %>%
+  ggplot(aes(x=reorder(description, p.adjust), #Reorder gene sets by k/K values
+             y=k.K, fill = log10_pvalue)) +
+  geom_col( width = 0.8) +
+  geom_text(aes(label = Count), hjust=1.1, vjust= 0.5, size=3, fontface = "bold")+
+  theme_classic() +
+  coord_flip() +
+  #fix labels
+  labs(y="Proportion of significant genes over<br>the total genes" ,
+       x="GO terms description for gene set (Specific to MABS specific)",
+       #title = "Musa species specific" 
+  ) +
+  scale_fill_gradientn(colours = terrain.colors(10),
+                       name  = "log10 pvalue")+
+  
+  # scale_fill_continuous(name  = "log10 pvalue")+
+  theme( 
+    axis.title.x = element_markdown(size = 9, face = "bold"),
+    axis.title.y = element_blank(),
+    axis.line.x = element_line(),
+    axis.line.y = element_line(),
+    plot.title = element_markdown(face = "bold"),
+    axis.text.y = element_markdown(size = 9,face = "bold"),
+    axis.text.x = element_markdown(size = 9),
+    legend.title = element_text(size=9),
+    legend.text = element_text(size = 8),
+    legend.position = "top"
+  )
+```
+
+# save output to disk 
+```{r}
+# ls(pattern = "_topGO")
+
+EV_specific_clustPro_GOenrich %>%
+  rbind(
+    MAB_specific_clustPro_GOenrich
+  ) %>%
+  write.table(
+    paste0(
+      path_out,
+      "/go_terms_enrichment/",
+      "EV_MAB_clusterPr.readsMapping_enrichment.txt"
+    ),
+    col.names = T,
+    row.names = F,
+    quote = F,
+    sep = '\t'
+  )
+
+```
+
+# save project
+```{r save_project}
+
+save.image(file = "cluterProfile_enrichment.RData")
+
+# load(file = "../monocot_blastp_all.RData")
+
+```
+
+
+
+
+

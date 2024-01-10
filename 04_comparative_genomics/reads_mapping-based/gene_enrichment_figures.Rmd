@@ -1,0 +1,139 @@
+
+# Gene-enrichment 
+
+```{r}
+EV_specific_clustPro_GOenrich_plot  <-
+  EV_MAB_specific_clustPro_GOenrich_combined %>%
+  # dplyr::filter(p.adjust < 0.05) %>%
+  # filter(genome=="*E. ventricosum*") %>%
+  dplyr::filter(description != "NA") %>% 
+  dplyr::filter(aspects == 'Biological process') %>%
+  # dplyr::filter(p.adjust < 0.05) %>%
+  ggplot(aes(x=reorder(description, p.adjust), #Reorder gene sets by k/K values
+             y=k.K, fill = log10_pvalue)) +
+  geom_col( width = 0.8) +
+  geom_text(aes(label = Count), hjust=1.1, vjust= 0.5, size=2, fontface = "bold")+
+  theme_classic() +
+  #Some more customization to pretty it up
+  #Flip x and y so long labels can be read
+  scale_y_continuous(breaks =c(0.0, 0.4,0.8))+
+  scale_x_discrete(position = "top") +
+  coord_flip() +
+  #fix labels
+  labs(y="Proportion of significant genes over<br>the total genes" ,
+       x="GO terms description for gene set (Specific to MABS specific)",
+       #title = "Musa species specific" 
+  ) +
+  scale_fill_gradientn(colours = terrain.colors(10),
+                       name  = "log10\npvalue")+
+
+  
+  # scale_fill_continuous(name  = "log10 pvalue")+
+  theme( 
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.line.x = element_line(),
+    axis.line.y = element_line(),
+    plot.title = element_markdown(face = "bold"),
+    axis.text.y = element_markdown(size = 6,face = "bold"),
+    axis.text.x = element_markdown(size = 6),
+    legend.title = element_text(size=6),
+    legend.text = element_text(size = 6),
+    legend.key.size = unit(0.35,"cm"),
+    legend.position = "top"
+    # legend.position = c(0.7,0.85)
+  )
+
+
+MA_specific_clustPro_GOenrich_plot  <-
+  MA_specific_clustPro_GOenrich %>%
+  dplyr::filter(frac_cov==0.25) %>%
+  # dplyr::filter(p.adjust < 0.05) %>%
+  # filter(genome=="*E. ventricosum*") %>%
+  dplyr::filter(description != "NA") %>% 
+  dplyr::filter(aspects == 'Biological process') %>%
+  # dplyr::filter(p.adjust < 0.05) %>%
+  ggplot(aes(x=reorder(description, p.adjust), #Reorder gene sets by k/K values
+             y=k.K, fill = log10_pvalue)) +
+  geom_col( width = 0.8) +
+  geom_text(aes(label = Count), hjust=1.1, vjust= 0.5, size=2, fontface = "bold")+
+  theme_classic() +
+  #Some more customization to pretty it up
+  #Flip x and y so long labels can be read
+  scale_y_continuous(breaks =c(0.0, 0.2))+
+  scale_x_discrete(position = "top") +
+  coord_flip() +
+  #fix labels
+  labs(y="Proportion of significant genes over<br>the total genes" ,
+       x="GO terms description for gene set (Specific to MABS specific)",
+       #title = "Musa species specific" 
+  ) +
+  scale_fill_gradientn(colours = terrain.colors(10),
+                       name  = "log10\npvalue")+
+  
+  # scale_fill_continuous(name  = "log10 pvalue")+
+  theme( 
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.line.x = element_line(),
+    axis.line.y = element_line(),
+    plot.title = element_markdown(face = "bold"),
+    axis.text.y = element_markdown(size = 6,face = "bold"),
+    axis.text.x = element_markdown(size = 6),
+    legend.title = element_text(size=6),
+    legend.text = element_text(size = 6),
+    legend.key.size = unit(0.35,"cm"),
+    legend.position = "top"
+    # legend.position = c(0.7,0.85)
+  )
+
+
+# Musa balbisina 
+MB_specific_clustPro_GOenrich_plot  <-
+  MB_specific_clustPro_GOenrich %>%
+  # dplyr::filter(p.adjust < 0.05) %>%
+  # filter(genome=="*E. ventricosum*") %>%
+  dplyr::filter(description != "NA") %>% 
+  dplyr::filter(aspects == 'Biological process') %>%
+  # dplyr::filter(p.adjust < 0.05) %>%
+  ggplot(aes(x=reorder(description, p.adjust), #Reorder gene sets by k/K values
+             y=k.K, fill = log10_pvalue)) +
+  geom_col( width = 0.8) +
+  geom_text(aes(label = Count), hjust=1.1, vjust= 0.5, size=2, fontface = "bold")+
+  theme_classic() +
+  #Some more customization to pretty it up
+  #Flip x and y so long labels can be read
+  scale_y_continuous(breaks =c(0.0, 0.2))+
+  scale_x_discrete(position = "top") +
+  coord_flip() +
+  #fix labels
+  labs(y="Proportion of significant genes over<br>the total genes" ,
+       x="GO terms description for gene set (Specific to MABS specific)",
+       #title = "Musa species specific" 
+  ) +
+  scale_fill_gradientn(colours = terrain.colors(10),
+                       name  = "log10\npvalue")+
+  
+  # scale_fill_continuous(name  = "log10 pvalue")+
+  theme( 
+    axis.title.x = element_blank(),
+    axis.title.y = element_blank(),
+    axis.line.x = element_line(),
+    axis.line.y = element_line(),
+    plot.title = element_markdown(face = "bold"),
+    axis.text.y = element_markdown(size = 6,face = "bold"),
+    axis.text.x = element_markdown(size = 6),
+    legend.title = element_text(size=6),
+    legend.text = element_text(size = 6),
+    legend.key.size = unit(0.35,"cm"),
+    legend.position = "top"
+    # legend.position = c(0.7,0.85)
+  )
+
+library(patchwork)
+(EV_specific_clustPro_GOenrich_plot|MA_specific_clustPro_GOenrich_plot|MB_specific_clustPro_GOenrich_plot)
+ggsave("../go_terms_enrichment/EV_MA_MB_specific.pdf", width=7.5, height=4)
+
+
+```
+
