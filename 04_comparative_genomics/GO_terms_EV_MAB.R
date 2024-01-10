@@ -230,16 +230,16 @@ GO_terms_EV_AED25_MAB_desc.v1 <-
 #   mutate(Orthogroup = str_replace_na(Orthogroup,"")) 
 
 
-GO_terms_EV_AED25_MAB_OGs_genes <-
-  assigned_unassigned_OGs_genes_EV_EG_MAB %>%
-  mutate(genome = str_replace_all(genome,c("musa_ac"="Musa_acuminata",
-                                           "musa_ba" = "Musa_balbisiana"))) %>%
-  left_join(GO_terms_EV_AED25_MAB_desc.v1 %>%
-              mutate(genome = str_replace_all(genome,c("mazia"="Ensete_ventricosum_mazia",
-                                                       "bedadeti" = "Ensete_ventricosum_bedadeti")))) %>%
-  mutate(GO_terms  = str_replace_na(GO_terms,"NA")) %>%
-    select(-genomes,-genomes_short)  %>%
-  filter(GO_terms !="NA") 
+# GO_terms_EV_AED25_MAB_OGs_genes <-
+#   assigned_unassigned_OGs_genes_EV_EG_MAB %>%
+#   mutate(genome = str_replace_all(genome,c("musa_ac"="Musa_acuminata",
+#                                            "musa_ba" = "Musa_balbisiana"))) %>%
+#   left_join(GO_terms_EV_AED25_MAB_desc.v1 %>%
+#               mutate(genome = str_replace_all(genome,c("mazia"="Ensete_ventricosum_mazia",
+#                                                        "bedadeti" = "Ensete_ventricosum_bedadeti")))) %>%
+#   mutate(GO_terms  = str_replace_na(GO_terms,"NA")) %>%
+#     select(-genomes,-genomes_short)  %>%
+#   filter(GO_terms !="NA") 
   
 
 # save

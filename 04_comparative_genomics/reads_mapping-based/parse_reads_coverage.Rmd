@@ -1,0 +1,644 @@
+This script process BEDTools coding sequence (CDS) coverage of pan-A and B-genome reads of *Musa species* that were mapped against *E. ventricosum* (EV) genomes. Predicted genes that had reads spanning less 25% its CDS were considered to candidate EV specific genes and vice versa for genes in *M. acuminata* and *M. balbisiana*. In this script filtered EV specific genes were linked with the respective proteins sequences and their Gene Ontology (GO) terms attributes associated with biological terms if GO-term annotation exist for the genes. When identified genes lack GO-term annotation, fasta files these genes were printed and to against NCBI NR, SwissProt databases, and using InterProscan, and Proteinfer to detect gene motifs and domains in teh amino acid sequences.   
+
+````{r load library}
+# Install packages missing packages.
+
+packages = c("tidyverse", "phylotools","ggtext","VennDiagram","cowplot","ggVennDiagram","glue","ggrepel")
+
+installed_packages <- packages %in% rownames(installed.packages())
+if (any(installed_packages == FALSE)) {
+  install.packages(packages[!installed_packages])
+}
+
+library(tidyverse)
+library(ggtext)
+library(VennDiagram)
+library(cowplot)
+library(ggVennDiagram)
+library(glue)
+library(ggrepel)
+```
+
+# Identiying enset specific genes using mapping genomic Pan-reads of A-genome and B-genome of Musa species 
+
+## Read CDS length coverage data of EV genes  
+```{r read data }
+dir.create("absolute_path_to_output_dir")
+
+path_out="absolute_path_to_output_dir"
+
+PanMusa_AABB_EV_mazia <-
+read.delim(paste0(path_out,"PanMB_EV/PanMB_EVMZ/PanMBB_EV_mazia.allMapped.gene.cov.bed"), header = F) %>%
+  rename(contig_chr_name = V1,
+         start = V2,
+         end = V3,
+         overlap_count=V4,
+         overlap_length = V5,
+         total_length_ref = V6,
+         fraction_overlap = V7
+  ) %>%
+  select(-overlap_count,-overlap_length,-total_length_ref) %>%
+  rename(MB=fraction_overlap) %>%
+  left_join(read.delim(paste0(path_out,"PanMA_EV/PanMA_EVMZ/PanMA_EV_mazia.allMapped.gene.cov.bed"), header = F) %>%
+  rename(contig_chr_name = V1,
+         start = V2,
+         end = V3,
+         overlap_count=V4,
+         overlap_length = V5,
+         total_length_ref = V6,
+         fraction_overlap = V7
+  ) %>%
+  select(-overlap_count,-overlap_length,-total_length_ref) %>%
+  rename(MA=fraction_overlap)) %>%
+  left_join(
+  read.delim(paste0(path_out,"PanEV_EVMZ/PanEV_mazia.allMapped.cov.bed"), header = F) %>%
+      rename(contig_chr_name = V1,
+             start = V2,
+             end = V3,
+             overlap_count=V4,
+             overlap_length = V5,
+             total_length_ref = V6,
+             fraction_overlap = V7
+      ) %>%
+      select(-overlap_count,-overlap_length,-total_length_ref) %>%
+  rename(EV=fraction_overlap)) %>%
+  mutate(ref_genome = "EV_mazia") %>%
+    filter(fraction_overlap < 0.25)
+
+
+## Pan Musa acuminata reads vs Ensete ventricosum assemnblies of Mazia and Bedadeti
+
+PanMusa_AABB_EV_bedadeti <-
+# panMA_EV_MZBD <-
+# panMA_EV_MZBD <-
+    read.delim(paste0(path_out,"PanMB_EV/PanMB_EVBD/PanMBB_EV_bedadeti.allMapped.gene.cov.v5.bed"), header = F) %>%
+      rename(contig_chr_name = V1,
+             start = V2,
+             end = V3,
+             overlap_count=V4,
+             overlap_length = V5,
+             total_length_ref = V6,
+             fraction_overlap = V7
+      ) %>%
+      select(-overlap_count,-overlap_length,-total_length_ref) %>%
+  rename(MB=fraction_overlap) %>% 
+  left_join(
+    read.delim(paste0(path_out,"PanMA_EV/PanMA_EVBD/PanMAA_EV_bedadeti.allMapped.gene.cov.bed"), header = F) %>%
+      rename(contig_chr_name = V1,
+             start = V2,
+             end = V3,
+             overlap_count=V4,
+             overlap_length = V5,
+             total_length_ref = V6,
+             fraction_overlap = V7
+      ) %>%
+      select(-overlap_count,-overlap_length,-total_length_ref) %>%
+  rename(MA=fraction_overlap)) %>%
+  left_join(
+  read.delim(paste0(path_out,"/PanEV_EVBD/PanEV_bedadeti.allMapped.cov.v2.bed"), header = F) %>%
+      rename(contig_chr_name = V1,
+             start = V2,
+             end = V3,
+             overlap_count=V4,
+             overlap_length = V5,
+             total_length_ref = V6,
+             fraction_overlap = V7
+      ) %>%
+       select(-overlap_count,-overlap_length,-total_length_ref) %>%
+  rename(EV=fraction_overlap)) %>%
+    mutate(ref_genome = "EV_Bedadeti") %>%
+    filter(fraction_overlap < 0.25)
+
+```
+
+
+## Attached gene id to CDS
+```{r attachd_gene_id}
+
+EV_MZBD_full_length_CDS_gene_ID <-
+  read.delim(paste0(path,"EV_mazia.gene.ID.0.bed"), header = F) %>%
+  rbind(read.delim(paste0(path,"EV_bedadeti.gene.ID.0.bed"), header = F)) %>%
+  rename(contig_chr_name = V1,
+         start = V2,
+         end = V3,
+         gene_id=V4,
+  )
+
+# PanMusa_AB_EV_MZBD_gene_ID
+
+
+PanMusa_AABB_EV_mazia_gene <-
+  PanMusa_AABB_EV_mazia %>%
+  left_join(EV_MZBD_full_length_CDS_gene_ID) %>%
+  mutate(genome = case_when(str_detect(gene_id,"EVMZ") ~ "*E. ventricosum*<br>(Mazia) genome",
+                            str_detect(gene_id,"EVBD") ~ "*E. ventricosum*<br>(Bedadeti) genome"),
+         genome = str_replace_na(genome,"NA"))  %>%
+  filter(genome !="NA")
+  
+PanMusa_AABB_EV_bedadeti_gene <- 
+PanMusa_AABB_EV_bedadeti  %>%
+  left_join(EV_MZBD_full_length_CDS_gene_ID) %>%
+  mutate(genome = case_when(str_detect(gene_id,"EVMZ") ~ "*E. ventricosum*<br>(Mazia) genome",
+                            str_detect(gene_id,"EVBD") ~ "*E. ventricosum*<br>(Bedadeti) genome"),
+         genome = str_replace_na(genome,"NA"))  %>%
+  filter(genome !="NA")
+
+```
+
+
+## Generate plot 
+
+```{r combined_plot}
+
+PanMusa_AABB_EV_mazia_bedadeti_gene_combined <-
+  PanMusa_AABB_EV_mazia_gene %>%
+  rbind(PanMusa_AABB_EV_bedadeti_gene) %>%
+  mutate(start = as.character(start),
+         end=as.character(end)) %>%
+  pivot_longer(cols = c("MB","MA","EV"),names_to = "reads_genome",values_to = "fraction_overlap") %>% 
+  mutate(group= case_when(str_detect(genome,"Mazia") & str_detect(reads_genome,"MA") ~ "*Musa* A-genome reads vs <br> EV (Mazia) genome",
+                          str_detect(genome,"Mazia") & str_detect(reads_genome,"MB") ~ "*Musa* B-genome reads vs <br> EV (Mazia) genome",
+                          str_detect(genome,"Bedadeti") & str_detect(reads_genome,"MB") ~ "*Musa* B-genome reads vs <br> EV (Bedadeti) genome",
+                          str_detect(genome,"Bedadeti") & str_detect(reads_genome,"MA") ~ "*Musa* A-genome reads vs <br> EV (Bedadeti) genome",
+                          str_detect(genome,"Bedadeti") & str_detect(reads_genome,"EV") ~ "*E. ventricosum* genomic reads vs <br> EV (Bedadeti) genome",
+                          str_detect(genome,"Mazia") & str_detect(reads_genome,"EV") ~ "*E. ventricosum* genomic reads vs <br> EV (Mazia) genome"))
+
+
+PanMusa_AABB_EV_mazia_bedadeti_gene_combined$group = factor(PanMusa_AABB_EV_mazia_bedadeti_gene_combined$group, 
+                                                            levels = c(
+                                                              "*Musa* A-genome reads vs <br> EV (Mazia) genome", 
+                                                              "*Musa* B-genome reads vs <br> EV (Mazia) genome", 
+                                                              "*E. ventricosum* genomic reads vs <br> EV (Mazia) genome", 
+                                                              "*Musa* A-genome reads vs <br> EV (Bedadeti) genome", 
+                                                              "*Musa* B-genome reads vs <br> EV (Bedadeti) genome", 
+                                                              "*E. ventricosum* genomic reads vs <br> EV (Bedadeti) genome"
+                                                            ))
+
+
+
+PanMusa_AABB_EV_mazia_bedadeti_gene_combined %>% 
+  ggplot(aes(fraction_overlap)) +
+  geom_freqpoly(linewidth=.5, color="blue")+
+  facet_wrap(~group, ncol = 3, nrow = 2)+
+  labs(x = "Fraction of each *E. ventricosum* specific gene's coding sequence<br>spanned by genomic reads from *Musa spp*",
+       y = "Count of genes",
+       color = "Source of EV<br>genomic reads (landraces)")+
+  theme_bw()+
+  theme(
+    axis.title.x = element_markdown(size = 8,face = "bold"),
+    axis.title.y = element_text(size = 8, face = "bold"),
+    axis.text.x = element_markdown(size = 8,face ="bold"),
+    axis.text.y = element_text(size = 8,face = "bold"),
+    strip.text.x = element_markdown(size=8, face = "bold"),
+    legend.text = element_markdown(margin = margin(r=8),size = 8,face = "bold"),
+    legend.title = element_markdown(size=8, face="bold"),
+    legend.key.size = unit(0.35,"cm"),
+    legend.position = "none"
+    
+  )
+
+ggsave(paste0(path_out,"panMAB_EV_mazia_bedadeti_combined.jpeg"), width=8, height=5)
+```
+
+```{r summary}
+## summary
+PanMusa_AABB_EV_mazia_bedadeti_gene_combined %>% 
+  # filter(genotype !="Epo",
+  #        genotype !="Lochinge (221)",
+  #        genotype != "Erpha") %>%
+  # filter(str_detect(ref_genome,"mazia")) %>%
+  select(gene_id,reads_genome,ref_genome) %>%
+  ungroup() %>%
+  distinct() %>% 
+  group_by(reads_genome,ref_genome) %>%
+  summarise(fraction_cov_0_25 = n())%>%
+   write.table(paste0(path_out,"panMBA_EV_MZBD_read_mapping_summary.txt"),col.names = T,
+            row.names = F, quote = F, sep = '\t')
+
+```
+
+```{r combined_stat}
+## summary
+PanMusa_AABB_EV_mazia_bedadeti_gene_combined %>% 
+  select(gene_id,reads_genome,ref_genome) %>%
+  ungroup() %>%
+  distinct() %>% 
+  group_by(reads_genome,ref_genome) %>%
+  summarise(fraction_cov_0_01 = n())%>%
+write.table(paste0(path_out,"panMBA_EV_MZBD_read_mapping_summary.txt"),col.names = T,
+            row.names = F, quote = F, sep = '\t')
+```
+
+## Generate reads mapping based PAV for EV genes 
+
+### Combine mazia and bedadeti PAV genes 
+```{r EV_gene_lost_in_panMUSA_reads}
+
+## Combine mapping stats of Musa-A genoem and B-genome reads for the two enset landraces 
+PanMusa_AABB_EV_mazia_bedadeti_gene_combined <-
+PanMusa_AABB_EV_mazia_gene %>%
+  rbind(PanMusa_AABB_EV_bedadeti_gene)
+
+PanMusa_AABB_EV_mazia_bedadeti_gene_combined <-
+  PanMusa_AABB_EV_mazia_gene %>%
+  rbind(PanMusa_AABB_EV_bedadeti_gene) %>%
+  
+## add presence absence gene list
+EV_bedadeti_gene_lost_in_Musa_reads_mapping_gene_id <- 
+EV_bedadeti_gene_lost_in_Musa_reads_mapping %>%
+  rbind(EV_mazia_gene_lost_in_Musa_reads_mapping) %>% 
+  left_join(
+    PanMusa_AABB_EV_mazia_bedadeti_gene_combined
+  )
+
+
+```
+
+## Vendiagram plot for EV PAV genes 
+### For Mazia PAV genes 
+```{r vendiag_mazia_PAV}
+
+PanMusa_AABB_EV_mazia_bedadeti_gene_combined <-
+PanMusa_AABB_EV_mazia_gene %>%
+  rbind(PanMusa_AABB_EV_bedadeti_gene)
+#   
+PanMusa_AABB_EV_mazia_wide <- 
+PanMusa_AABB_EV_mazia_bedadeti_gene_combined %>%
+  select(gene_id, ref_genome,MA,MB,EV) %>%
+  filter(str_detect(ref_genome,"EV_mazia")) %>%
+  select(-ref_genome)
+ 
+
+PanMusa_AABB_EV_mazia_wide %>%
+  filter(MA == 1) %>% 
+  select(gene_id) %>%
+  write.table(paste0(path_out, "EV_mazia_panMA.gene.txt"), col.names = F, sep = '\t', quote = F, row.names = F)
+
+PanMusa_AABB_EV_mazia_wide %>%
+  filter(MB == 1) %>% 
+  select(gene_id) %>%
+  write.table(paste0(path_out, "EV_mazia_panMB.gene.txt"), col.names = F, sep = '\t', quote = F, row.names = F)
+
+PanMusa_AABB_EV_mazia_wide %>%
+  filter(EV == 1) %>% 
+  select(gene_id) %>%
+  write.table(paste0(path_out, "EV_mazia_panEV.gene.txt"), col.names = F, sep = '\t', quote = F, row.names = F)
+
+
+# Figure of main venn diagrams
+
+Gene_list_VennDiag_PanEV_MAB <- list()
+
+# OG_list_VennDiag_EV_MAB[["EV (Bedadeti)"]] <- read.table("../monocot_blastp/advanced_orthofinder/OrthogroupsVennDiag/Ensete_ventricosum_bedadeti.OG.txt", header = F, stringsAsFactors = FALSE)$V1
+Gene_list_VennDiag_PanEV_MAB[["EV"]] <- read.table(paste0(path_out, "EV_mazia_panEV.gene.txt"), header = F, stringsAsFactors = FALSE)$V1
+Gene_list_VennDiag_PanEV_MAB[["Musa spp\nA-genome"]] <- read.table(paste0(path_out, "EV_mazia_panMA.gene.txt"), header = F, stringsAsFactors = FALSE)$V1
+Gene_list_VennDiag_PanEV_MAB[["Musa spp\nB-genome"]] <- read.table(paste0(path_out, "EV_mazia_panMB.gene.txt"), header = F, stringsAsFactors = FALSE)$V1
+
+# Plot Ven diagra 
+library(VennDiagram)
+library(ggVennDiagram)
+
+  
+venn_data <- Venn(Gene_list_VennDiag_PanEV_MAB)
+venn_data_process <- process_data(venn_data)
+
+ggVennDiagram(x = Gene_list_VennDiag_PanEV_MAB, 
+              size = 4,
+              set_size = 0,
+              label_size = 2) +
+  scale_fill_gradient(low="light grey", high = "red", limits = c(0, 60000)) +
+  labs(fill="Count",
+       title =NULL
+         # "Presence / absence of EV (Mazia) predicted genes\n in EV, MA and MB Pan-reads"
+       ) +
+  # ggtitle("Shared Orthogroups (OGs)") +
+  theme(#plot.title = element_text(hjust = 0.6),
+        legend.position = "none")+
+  scale_x_continuous(expand = expansion(mult = .4))+
+  scale_y_continuous(expand = expansion(mult = .2))+
+  geom_sf_text(aes(label = name), data = venn_setlabel(venn_data_process),  vjust=0, size=2.1,hjust=0.2, fontface="bold") 
+
+ggsave(paste0(path_out,"EV_mazia_gene_panMusa_AABB_reads_mapping_VenDiag.15p.jpeg"), width=2.3, height=2.2)
+
+```
+
+
+### For mazia PAV: with a cutoff value of reads mapping to >= 10 % of CDS length 
+
+## 25 percent 
+```{r vendiag_mazia_PAV}
+ 
+PanMusa_AABB_EV_mazia_wide <- 
+PanMusa_AABB_EV_mazia_bedadeti_gene_combined %>%
+  select(gene_id, ref_genome,MA,MB,EV) %>%
+  filter(str_detect(ref_genome,"EV_mazia")) %>%
+  select(-ref_genome)
+ 
+
+PanMusa_AABB_EV_mazia_wide %>%
+  filter(MA == 1) %>% 
+  select(gene_id) %>%
+  write.table(paste0(path_out, "EV_mazia_panMA.gene.txt"), col.names = F, sep = '\t', quote = F, row.names = F)
+
+PanMusa_AABB_EV_mazia_wide %>%
+  filter(MB == 1) %>% 
+  select(gene_id) %>%
+  write.table(paste0(path_out, "EV_mazia_panMB.gene.txt"), col.names = F, sep = '\t', quote = F, row.names = F)
+
+PanMusa_AABB_EV_mazia_wide %>%
+  filter(EV == 1) %>% 
+  select(gene_id) %>%
+  write.table(paste0(path_out, "EV_mazia_panEV.gene.txt"), col.names = F, sep = '\t', quote = F, row.names = F)
+
+
+# Figure of main venn diagrams
+
+# OG_Species = c("Ensete_ventricosum_bedadeti","Ensete_ventricosum_mazia","Musa_acuminata","Musa_balbisiana")
+
+Gene_list_VennDiag_PanEV_MAB <- list()
+
+# OG_list_VennDiag_EV_MAB[["EV (Bedadeti)"]] <- read.table("../monocot_blastp/advanced_orthofinder/OrthogroupsVennDiag/Ensete_ventricosum_bedadeti.OG.txt", header = F, stringsAsFactors = FALSE)$V1
+Gene_list_VennDiag_PanEV_MAB[["EV"]] <- read.table(paste0(path_out, "EV_mazia_panEV.gene.txt"), header = F, stringsAsFactors = FALSE)$V1
+Gene_list_VennDiag_PanEV_MAB[["Musa spp\nA-genome"]] <- read.table(paste0(path_out, "EV_mazia_panMA.gene.txt"), header = F, stringsAsFactors = FALSE)$V1
+Gene_list_VennDiag_PanEV_MAB[["Musa spp\nB-genome"]] <- read.table(paste0(path_out, "EV_mazia_panMB.gene.txt"), header = F, stringsAsFactors = FALSE)$V1
+
+# Plot Ven diagra 
+
+venn_data <- Venn(Gene_list_VennDiag_PanEV_MAB)
+venn_data_process <- process_data(venn_data)
+
+ggVennDiagram(x = Gene_list_VennDiag_PanEV_MAB, 
+              size = 4,
+              set_size = 0,
+              label_size = 2) +
+  scale_fill_gradient(low="light grey", high = "red", limits = c(0, 60000)) +
+  labs(fill="Count",
+       title =NULL
+         # "Presence / absence of EV (Mazia) predicted genes\n in EV, MA and MB Pan-reads"
+       ) +
+  # ggtitle("Shared Orthogroups (OGs)") +
+  theme(#plot.title = element_text(hjust = 0.6),
+        legend.position = "none")+
+  scale_x_continuous(expand = expansion(mult = .4))+
+  scale_y_continuous(expand = expansion(mult = .2))+
+  geom_sf_text(aes(label = name), data = venn_setlabel(venn_data_process),  vjust=0, size=2.1,hjust=0.2, fontface="bold") 
+
+ggsave(paste0(path_out,"EV_mazia_gene_panMusa_AABB_reads_mapping_VenDiag.100p.cutoff_25p.jpeg"), width=2.3, height=2.2)
+
+
+```
+
+### For bedadeti PAV genes 
+
+```{r vendiag_bedadeti_PAV}
+
+PanMusa_AABB_EV_bedadeti_wide %>%
+  filter(MA == 1) %>% 
+  select(gene_id) %>%
+  write.table(paste0(path_out, "EV_bedadeti_panMA.gene.txt"), col.names = F, sep = '\t', quote = F, row.names = F)
+
+PanMusa_AABB_EV_bedadeti_wide %>%
+  filter(MB == 1) %>% 
+  select(gene_id) %>%
+  write.table(paste0(path_out, "EV_bedadeti_panMB.gene.txt"), col.names = F, sep = '\t', quote = F, row.names = F)
+
+PanMusa_AABB_EV_bedadeti_wide %>%
+  filter(EV == 1) %>% 
+  select(gene_id) %>%
+  write.table(paste0(path_out, "EV_bedadeti_panEV.gene.txt"), col.names = F, sep = '\t', quote = F, row.names = F)
+
+Bedadeti_Gene_list_VennDiag_PanEV_MAB <- list()
+
+Bedadeti_Gene_list_VennDiag_PanEV_MAB[["EV"]] <- read.table(paste0(path_out, "EV_bedadeti_panEV.gene.txt"), header = F, stringsAsFactors = FALSE)$V1
+Bedadeti_Gene_list_VennDiag_PanEV_MAB[["Musa spp.\nA-genome"]] <- read.table(paste0(path_out, "EV_bedadeti_panMA.gene.txt"), header = F, stringsAsFactors = FALSE)$V1
+Bedadeti_Gene_list_VennDiag_PanEV_MAB[["Musa spp.\nB-genome"]] <- read.table(paste0(path_out, "EV_bedadeti_panMB.gene.txt"), header = F, stringsAsFactors = FALSE)$V1
+
+# Plot Venn diagram 
+library(VennDiagram)
+library(ggVennDiagram)
+
+venn_data <- Venn(Bedadeti_Gene_list_VennDiag_PanEV_MAB)
+venn_data_process <- process_data(venn_data)
+
+ggVennDiagram(x = Bedadeti_Gene_list_VennDiag_PanEV_MAB, 
+              size = 4,
+              set_size = 0,
+              label_size = 2) +
+  scale_fill_gradient(low="light grey", high = "red", limits = c(0, 60000)) +
+  labs(fill="Count",
+       title =NULL
+       ) +
+  theme(#plot.title = element_text(hjust = 0.6),
+        legend.position = "none")+
+  scale_x_continuous(expand = expansion(mult = .4))+
+  scale_y_continuous(expand = expansion(mult = .2))+
+  geom_sf_text(aes(label = name), data = venn_setlabel(venn_data_process),  vjust=0, size=2.1,hjust=0.2, fontface="bold") 
+
+```
+
+### For Bedadeti PAV genes: with a cutoff value of reads mapping to >= 10 % of CDS length 
+
+```{r 25%}
+PanMusa_AABB_EV_bedadeti_wide <- 
+PanMusa_AABB_EV_mazia_bedadeti_gene_combined %>%
+  select(gene_id, ref_genome,MA,MB,EV) %>%
+  filter(str_detect(ref_genome,"EV_Bedadeti")) %>%
+  select(-ref_genome)
+
+PanMusa_AABB_EV_bedadeti_wide %>%
+  filter(MA == 1) %>% 
+  select(gene_id) %>%
+  write.table(paste0(path_out, "EV_bedadeti_panMA.gene.txt"), col.names = F, sep = '\t', quote = F, row.names = F)
+
+PanMusa_AABB_EV_bedadeti_wide %>%
+  filter(MB == 1) %>% 
+  select(gene_id) %>%
+  write.table(paste0(path_out, "EV_bedadeti_panMB.gene.txt"), col.names = F, sep = '\t', quote = F, row.names = F)
+
+PanMusa_AABB_EV_bedadeti_wide %>%
+  filter(EV == 1) %>% 
+  select(gene_id) %>%
+  write.table(paste0(path_out, "EV_bedadeti_panEV.gene.txt"), col.names = F, sep = '\t', quote = F, row.names = F)
+
+# Figure of main venn diagrams
+
+Bedadeti_Gene_list_VennDiag_PanEV_MAB <- list()
+
+Bedadeti_Gene_list_VennDiag_PanEV_MAB[["EV"]] <- read.table(paste0(path_out, "EV_bedadeti_panEV.gene.txt"), header = F, stringsAsFactors = FALSE)$V1
+Bedadeti_Gene_list_VennDiag_PanEV_MAB[["Musa spp.\nA-genome"]] <- read.table(paste0(path_out, "EV_bedadeti_panMA.gene.txt"), header = F, stringsAsFactors = FALSE)$V1
+Bedadeti_Gene_list_VennDiag_PanEV_MAB[["Musa spp.\nB-genome"]] <- read.table(paste0(path_out, "EV_bedadeti_panMB.gene.txt"), header = F, stringsAsFactors = FALSE)$V1
+
+# Plot Ven diagra 
+library(VennDiagram)
+library(ggVennDiagram)
+
+venn_data <- Venn(Bedadeti_Gene_list_VennDiag_PanEV_MAB)
+venn_data_process <- process_data(venn_data)
+
+ggVennDiagram(x = Bedadeti_Gene_list_VennDiag_PanEV_MAB, 
+              size = 4,
+              set_size = 0,
+              label_size = 2) +
+  scale_fill_gradient(low="light grey", high = "red", limits = c(0, 60000)) +
+  labs(fill="Count",
+       title =NULL
+         # "Presence / absence of EV (Mazia) predicted genes\n in EV, MA and MB Pan-reads"
+       ) +
+  # ggtitle("Shared Orthogroups (OGs)") +
+  theme(#plot.title = element_text(hjust = 0.6),
+        legend.position = "none")+
+  scale_x_continuous(expand = expansion(mult = .4))+
+  scale_y_continuous(expand = expansion(mult = .2))+
+  geom_sf_text(aes(label = name), data = venn_setlabel(venn_data_process),  vjust=0, size=2.1,hjust=0.2, fontface="bold") 
+
+
+ggsave(paste0(path_out, "EV_bedadeti_gene_panMAB_EV_reads_mapping_VenDiag.100p.cutoff_25p.jpeg"), width=2.3, height=2.2)
+
+```
+
+
+## Add amino acide sequences and GO terms annotation  
+```{r add_EV_aa_go}
+
+PanMusa_AABB_EV_mazia_bedadeti_gene_combined_GO <- 
+
+PanMusa_AABB_EV_mazia_bedadeti_gene_combined %>%
+  
+  ## add EV specific genes 
+  left_join() %>%
+  
+  ## add predicted amino acids 
+
+  left_join(
+    Ensete_MUSA_seq %>%
+      select(-genome) %>%
+      filter(str_detect(seq.name,"EV")) %>%
+      mutate(gene_id = str_remove(seq.name,"-\\w+"))) %>%
+  
+  ## add GO_terms annotaiton 
+  
+  left_join(GO_terms_EV_AED25_MAB_desc.v1 %>%
+              select(-genome,-genomes)) %>%
+  
+  ## add GO_terms descriptions and definations
+  left_join(go_odb_aspects_description) %>%
+    filter(aspects == "biological_process")
+
+
+
+```
+
+
+## EV specific genes list 
+```{r}
+
+PanMusa_AABB_EV_mazia_bedadeti_gene_combined_GO  %>%
+  select(seq.name,seq.text,ref_genome) %>%
+  distinct() %>%
+  left_join(GO_terms_EV_AED25_MAB_desc.v1) %>%
+  mutate(GO_terms = str_replace_na(GO_terms,"NA")) %>%
+  select(seq.name,seq.text) %>%
+  filter(str_detect(seq.name,"EV")) %>%
+    distinct() %>% 
+  mutate(seq.name = paste0(">",seq.name)) %>%
+  pivot_longer(cols = c(seq.name,seq.text)) %>%
+  select(value) %>%
+  write.table(paste0(path_out, "EV_mazia_bedadeti_specifci.prot.fa"), # name of the fasta file to be saved
+              sep="\t",
+              row.names = FALSE,
+              col.names = FALSE,
+              na = "",
+              quote=FALSE)
+
+```
+
+
+### Enset specific genes with GO-terms annotation 
+```{r}
+
+PanMusa_AABB_EV_mazia_bedadeti_gene_combined_GO  %>%
+  dplyr::filter(ref_genome == "EV_mazia"|
+                  ref_genome == "EV_bedadeti") %>%
+  distinct() %>%
+  mutate(GO_terms = str_replace_na(GO_terms,"NA")) %>%
+  dplyr::filter(!str_detect(GO_terms,"GO")) %>%
+  dplyr::select(seq.name,seq.text) %>%
+  dplyr::select(seq.name,seq.text) %>%
+  distinct() %>% 
+  mutate(seq.name = paste0(">",seq.name)) %>%
+  pivot_longer(cols = c(seq.name,seq.text)) %>%
+  dplyr::select(value) %>%
+  write.table(paste0(path_out, "EV_mazia_bedadeti_NOGO.prot.25.fa"), # name of the fasta file to be saved
+              sep="\t",
+              row.names = FALSE,
+              col.names = FALSE,
+              na = "",
+              quote=FALSE)
+```
+
+### Generate a plot for interproscan annotation (Bedadeti)
+```{r}
+
+EV_mazia_bedadeti_specifi_interproscan_NOGO <-
+read.delim(paste0(path_out, "interproscan_EV_NOGO.tsv"), header = F) %>%
+  rename(seq.name = V1,
+         seq_md5 = V2,
+         seq_len = V3,
+         analysis = V4,
+         signature_accession = V5,
+         signature_description = V6,
+         start = V7,
+         end = V8,
+         score = V9,
+         status = V10,
+         data = V11,
+         interpro_accession = V12,
+         interpro_description = V13) %>%
+  # head()
+  filter(signature_description !="consensus disorder prediction",
+         signature_description != "Coil",
+         signature_description != "OS06G0165300 PROTEIN",
+         signature_description != "OS02G0307900 PROTEIN",
+        signature_description != "OS01G0588500 PROTEIN-RELATED",
+
+         signature_accession != "G3DSA:1.10.287.1490",
+         signature_accession != "G3DSA:1.10.340.70",
+         signature_accession != "G3DSA:1.20.5.340",
+         signature_description != "Tropomyosin",
+         seq_md5 != "Reactome: R-HSA-8950505,") %>%
+
+  mutate (
+    annotate = signature_description, 
+    annotate = case_when(str_detect(annotate,"^-") ~ interpro_description,
+                         TRUE ~ annotate),
+
+    annotate = case_when(str_detect(signature_accession,"PTHR24559:SF319") ~ "TRANSPOSON TY3-I GAG-POL POLYPROTEIN",
+                         
+                         str_detect(signature_accession,"PTHR46148") ~ "CHROMO DOMAIN-CONTAINING PROTEIN",
+                         # str_detect(annotate,"SK") ~ "Shikimate kinase",
+                         str_detect(signature_accession,"PTHR34629") ~ "PROLINE-RICH EXTENSIN-LIKE PROTEIN EPR1",
+                         str_detect(annotate,"P-loop containing nucleoside triphosphate hydrolase") ~ "P-loop containing nucleoside triphosphate hydrolases",
+                         str_detect(annotate,"BolA") ~ "BolA-like protein 1/ BolA/ BolA-like/<br>BolA-like protein/ BolA-like superfamily",
+                         str_detect(annotate,"BOLA-LIKE PROTEIN 1") ~ "BolA-like protein 1/ BolA/ BolA-like/<br>BolA-like protein/ BolA-like superfamily",
+                         str_detect(annotate,"Shikimate") ~ "Shikimate kinase family signature/<br>Shikimate kinase signature/ Shikimate kinase",
+                         str_detect(annotate,"SHIKIMATE") ~ "Shikimate kinase family signature/<br>Shikimate kinase signature/ Shikimate kinase",
+                         str_detect(annotate,"SK") ~ "Shikimate kinase family signature/<br>Shikimate kinase signature/ Shikimate kinase",
+                         str_detect(annotate,"RT_LTR") ~ "Retrotransponson-long terminal repeats (RT_LTR)",
+                         str_detect(annotate,"Prokaryotic membrane") ~ "Prokaryotic membrane lipoprotein<br>lipid attachment site profile",
+                         TRUE~ annotate),
+    
+    
+    annotate = str_remove(annotate,";")
+    
+  ) %>%
+  filter(annotate != "-") %>%
+
+  select(seq.name,annotate) %>%
+  distinct() %>%
+  mutate(genome = case_when(str_detect(seq.name,"EVMZ") ~ "Mazia",
+                            str_detect(seq.name,"EVBD") ~ "Bedadeti",
+                            str_detect(seq.name,"Mac") ~ "Musa_acuminata",
+                            str_detect(seq.name,"Mba") ~ "Musa_balbisiana" )) 
+
+
+```

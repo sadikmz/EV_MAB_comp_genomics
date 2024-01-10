@@ -1,0 +1,481 @@
+```{r libraries}
+library(tidyverse)
+library(cowplot)
+library(ggVennDiagram)
+library(tidyverse)
+library(glue)
+library(ggtext)
+library(ggrepel)
+```
+
+# Read input data
+## Assigned and unassigne Orthogroups
+```{r}
+## assigend and unassinged orthogroups or EV, EG and Musa genomes
+
+EV_AED25_MAB.monocots.OG_GeneCount <-
+  read.delim("../EV_AED25_MAB_monocots/Orthogroups//Orthogroups.GeneCount.tsv", sep = '\t', header = T) %>%
+  mutate(
+    Ensete_ventricosum_mazia = case_when(Ensete_ventricosum_mazia >=1 ~ 1,
+                                         TRUE ~ 0),
+    Ensete_ventricosum_bedadeti = case_when(Ensete_ventricosum_bedadeti >=1 ~ 1,
+                                            TRUE ~ 0),
+    Musa_acuminata = case_when(Musa_acuminata >=1 ~ 1,
+                               TRUE ~ 0),
+    Musa_balbisiana = case_when(Musa_balbisiana >=1 ~ 1,
+                                TRUE ~ 0),
+    Ananas_comosus = case_when(Ananas_comosus >=1 ~ 1,
+                               TRUE ~ 0),
+    Dioscorea_alata = case_when(Dioscorea_alata >=1 ~ 1,
+                                TRUE ~ 0),
+    Manihot_esculenta = case_when(Manihot_esculenta >=1 ~ 1,
+                                  TRUE ~ 0),
+    Oryza_sativa = case_when(Oryza_sativa >=1 ~ 1,
+                             TRUE ~ 0),
+    Sorghum_biocolor = case_when(Sorghum_biocolor >=1 ~ 1,
+                                 TRUE ~ 0),
+    Triticum_aestivum = case_when(Triticum_aestivum >=1 ~ 1,
+                                  TRUE ~ 0),
+    Zea_mays = case_when(Zea_mays >=1 ~ 1,
+                         TRUE ~ 0)
+    # Musa_schizocarpa = case_when(Musa_schizocarpa >=1 ~ 1,
+    #                              TRUE ~ 0)
+  ) %>%
+
+  ## add unassigned OGs
+  bind_rows(
+    read.delim("../EV_AED25_MAB_monocots/Orthogroups/Orthogroups_UnassignedGenes.tsv", header = T, sep = '\t') %>%
+      mutate(
+        Ensete_ventricosum_mazia = case_when(str_detect(Ensete_ventricosum_mazia,"\\w+") ~ 1,
+                                             TRUE ~ 0),
+        Ensete_ventricosum_bedadeti = case_when(str_detect(Ensete_ventricosum_bedadeti, "\\w+") ~ 1,
+                                                TRUE ~ 0),
+        Musa_acuminata = case_when(str_detect(Musa_acuminata, "\\w+") ~ 1,
+                                   TRUE ~ 0),
+        Musa_balbisiana = case_when(str_detect(Musa_balbisiana, "\\w+") ~ 1,
+                                    TRUE ~ 0),
+        Ananas_comosus = case_when(Ananas_comosus >=1 ~ 1,
+                                   TRUE ~ 0),
+        Dioscorea_alata = case_when(Dioscorea_alata >=1 ~ 1,
+                                    TRUE ~ 0),
+        Manihot_esculenta = case_when(Manihot_esculenta >=1 ~ 1,
+                                      TRUE ~ 0),
+        Oryza_sativa = case_when(Oryza_sativa >=1 ~ 1,
+                                 TRUE ~ 0),
+        Sorghum_biocolor = case_when(Sorghum_biocolor >=1 ~ 1,
+                                     TRUE ~ 0),
+        Triticum_aestivum = case_when(Triticum_aestivum >=1 ~ 1,
+                                      TRUE ~ 0),
+        Zea_mays = case_when(Zea_mays >=1 ~ 1,
+                             TRUE ~ 0)
+      )) %>% select(-Total)
+
+
+```  
+
+## Prepare data for Ven Diagram
+```{r}
+dir.create("../EV_AED25_MAB_monocots/VennDiag/")
+EV_AED25_MAB.monocots.OG_GeneCount.v1 <- 
+  EV_AED25_MAB.monocots.OG_GeneCount
+
+
+EV_AED25_MAB.monocots.OG_GeneCount.v1 %>%
+  filter(Ensete_ventricosum_mazia == 1) %>% 
+  select(Orthogroup) %>% 
+  write.table("../EV_AED25_MAB_monocots/VennDiag/Ensete_ventricosum_mazia.OG.txt", col.names = F, sep = '\t', quote = F, row.names = F)
+
+EV_AED25_MAB.monocots.OG_GeneCount.v1 %>%
+  filter(Ensete_ventricosum_bedadeti == 1) %>% 
+  select(Orthogroup) %>% 
+  write.table("../EV_AED25_MAB_monocots/VennDiag/Ensete_ventricosum_bedadeti.OG.txt", col.names = F, sep = '\t', quote = F, row.names = F)
+
+
+EV_AED25_MAB.monocots.OG_GeneCount.v1 %>%
+  filter(Musa_acuminata == 1) %>% 
+  select(Orthogroup) %>% 
+  write.table("../EV_AED25_MAB_monocots/VennDiag/Musa_acuminata.OG.txt", col.names = F, sep = '\t', quote = F, row.names = F)
+
+EV_AED25_MAB.monocots.OG_GeneCount.v1 %>%
+  filter(Musa_balbisiana == 1) %>% 
+  select(Orthogroup) %>% 
+  write.table("../EV_AED25_MAB_monocots/VennDiag/Musa_balbisiana.OG.txt", col.names = F, sep = '\t', quote = F, row.names = F)
+
+
+
+# Figure of main venn diagrams
+
+# OG_Species = c("Ensete_ventricosum_bedadeti","Ensete_ventricosum_mazia","Musa_acuminata","Musa_balbisiana")
+
+OG_list_VennDiag_EV_MAB <- list()
+
+OG_list_VennDiag_EV_MAB[["EV (Bedadeti)"]] <- read.table("../EV_AED25_MAB_monocots/VennDiag/Ensete_ventricosum_bedadeti.OG.txt", header = F, stringsAsFactors = FALSE)$V1
+OG_list_VennDiag_EV_MAB[["EV (Mazia)"]] <- read.table("../EV_AED25_MAB_monocots/VennDiag/Ensete_ventricosum_mazia.OG.txt", header = F, stringsAsFactors = FALSE)$V1
+
+OG_list_VennDiag_EV_MAB[["MA"]] <- read.table("../EV_AED25_MAB_monocots/VennDiag/Musa_acuminata.OG.txt", header = F, stringsAsFactors = FALSE)$V1
+OG_list_VennDiag_EV_MAB[["MB"]] <- read.table("../EV_AED25_MAB_monocots/VennDiag/Musa_balbisiana.OG.txt", header = F, stringsAsFactors = FALSE)$V1
+
+```
+
+# Plot Ven diagra 
+```{r vendiag}
+library(VennDiagram)
+
+ggVennDiagram(x = OG_list_VennDiag_EV_MAB, 
+              size = 4.3) +
+  scale_fill_gradient(low="light grey", high = "red", limits = c(0, 6000)) +
+  labs(fill="Count",
+       title ="Species specific and shared orthogroups in EV and Musa spp") +
+  # ggtitle("Shared Orthogroups (OGs)") +
+  theme(plot.title = element_text(hjust = 0.6,face = "bold"),
+        legend.position = "none")+
+  scale_x_continuous(expand = expansion(mult = .2))
+ggsave("../EV_AED25_MAB_monocots/VennDiag/EV_AED25_MAB_OG_VenDiag.jpeg", width=5.6, height=4)
+
+```
+
+# Plot Ven diagra 
+```{r vendiag}
+# 
+# EV_bedadeti_specific_MAB_topGO
+
+EV_AED25_MAB.monocots.OG_GeneCount.v12 <- 
+EV_AED25_MAB.monocots.OG_GeneCount.v1 %>%
+  filter(Ensete_ventricosum_mazia == 1 |
+           Ensete_ventricosum_bedadeti == 1 |
+           Musa_acuminata == 1 |
+           Musa_balbisiana == 1) %>%
+  select(Orthogroup, Musa_balbisiana, Musa_acuminata, Ensete_ventricosum_bedadeti, Ensete_ventricosum_mazia) 
+
+```
+
+
+
+## summary statistics 
+```{r summary_stat}
+### statistics 
+read.delim("../Comparative_Genomics_Statistics/Statistics_Overall.tsv", sep = '\t', header = F) %>%
+  slice(1:18) %>% 
+  mutate(V1 = str_replace_all(V1, "Number", "#"),
+         V1 = str_replace(V1, "Percentage", "%"),
+         V1 = str_replace(V1, "orthogroup", "OG")) %>% 
+  write.table("../Comparative_Genomics_Statistics/Statistics_Overall.txt", sep = '\t', col.names = F, row.names = F, quote = F)
+```
+
+# Prepare data for duplication in species species OGs 
+```{r dups_species_spec}
+# Genome specific OGs
+species_specific_OGs_all <-
+  EV_AED25_MAB.monocots.OG_GeneCount %>% 
+  filter(
+    Ensete_ventricosum_bedadeti == 1,
+    Ensete_ventricosum_mazia==0, 
+    Musa_acuminata == 0,
+    Musa_balbisiana ==0
+  ) %>%
+  select(Orthogroup) %>% 
+  mutate(genome="EV_bedadeti") %>% 
+  bind_rows(
+    EV_AED25_MAB.monocots.OG_GeneCount %>% 
+      filter(
+        Ensete_ventricosum_bedadeti == 0,
+        Ensete_ventricosum_mazia==1, 
+        Musa_acuminata == 0,
+        Musa_balbisiana ==0
+        
+      ) %>%
+      select(Orthogroup) %>% 
+      mutate(genome="EV_mazia"),
+    EV_AED25_MAB.monocots.OG_GeneCount %>% 
+      filter(
+        Ensete_ventricosum_bedadeti == 0,
+        Ensete_ventricosum_mazia==0, 
+        Musa_acuminata == 1,
+        Musa_balbisiana ==0
+        
+      ) %>%
+      select(Orthogroup) %>% 
+      mutate(genome="MA"),
+    EV_AED25_MAB.monocots.OG_GeneCount %>% 
+      filter(
+        Ensete_ventricosum_bedadeti == 0,
+        Ensete_ventricosum_mazia==0, 
+        Musa_acuminata == 0,
+        Musa_balbisiana ==1
+        
+      ) %>%
+      select(Orthogroup) %>% 
+      mutate(genome="MB"))
+
+
+duplications_all <-
+  read.delim("../Gene_Duplication_Events/Duplications.tsv") 
+```
+
+
+# Parse assigned OG genes 
+```{r assigned OG_genes}
+
+### final script: parse_OG_gene_list 
+
+
+library(tidyverse)
+
+## read OGs containing gene list
+
+orthogroups_gene_list <- read.delim("../EV_AED25_MAB_monocots/Orthogroups/Orthogroups.tsv", header = T)  
+
+orthogroups_gene_list %>% colnames()
+
+# read gene list count table for each OGs 
+OG_GeneCount_unfiltered <- read.delim("../EV_AED25_MAB_monocots/Orthogroups/Orthogroups.GeneCount.tsv", sep = '\t', header = T) %>% 
+  dplyr::rename(
+    
+    "MA" = Musa_acuminata,
+    "MB" = Musa_balbisiana,
+    "EV_bed" = Ensete_ventricosum_bedadeti,
+    "EV_maz" = Ensete_ventricosum_mazia,
+    "A_S" = Ananas_comosus,
+    "D_A" = Dioscorea_alata,
+    "M_E" = Manihot_esculenta,
+    "O_S" = Oryza_sativa,
+    "S_B" = Sorghum_biocolor,
+    "T_A" = Triticum_aestivum,
+    "Z_M" = Zea_mays) #%>%
+
+
+# get the maximum number of genes contained in OGs for each genome 
+
+orthogroups_gene_list_max_genes <-
+  # orthogroups_gene_list %>%
+  OG_GeneCount_unfiltered %>%
+  # select(-Ensete_glaucum,-Ensete_ventricosum_bedadeti,-Ensete_ventricosum_mazia,
+  #        -Musa_acuminata,-Musa_balbisiana,-Musa_schizocarpa) %>%
+  # group_by(Orthogroup) %>%
+  summarise(
+    #Ensete_glaucum = max(EG),
+    Ensete_ventricosum_bedadeti = max(EV_bed),
+    Ensete_ventricosum_mazia = max(EV_maz),
+    Musa_acuminata  = max(MA),
+    Musa_balbisiana = max(MB),
+    Ananas_comosus = max(A_S),
+    Dioscorea_alata = max(D_A),
+    Manihot_esculenta = max(M_E),
+    Oryza_sativa = max(O_S),
+    Sorghum_biocolor = max(S_B),
+    Triticum_aestivum = max(T_A),
+    Zea_mays = max(Z_M)
+  ) 
+
+
+
+Species_List = orthogroups_gene_list_max_genes %>% colnames() %>% dput()
+
+
+all_assigned_OGsgenes_EV_MAB_monocots <- c()
+
+
+for (Each_Species in Species_List) {
+  # set maximum column number for the species 
+  col_range = orthogroups_gene_list_max_genes %>%
+    dplyr::select(Each_Species) 
+  
+  
+  col_range = 1:(col_range[1,1]+1)
+  
+  # split to genes to columns and 
+  # Species_OGs <-
+  all_assigned_OGsgenes_EV_MAB_monocots <-
+    orthogroups_gene_list %>%
+    dplyr::select(Orthogroup, Each_Species) %>%
+    separate(Each_Species,"seq.name", sep = "\\,")     %>%
+    ## create Column IDS to combine and assign spitted genes into their respective genomes
+    mutate(genome = Each_Species) %>%
+    mutate(seq.name  = str_replace_na(seq.name, "") ) %>%
+    dplyr::filter(seq.name !="" ) %>%
+    rbind(all_assigned_OGsgenes_EV_MAB_monocots)
+  
+  
+  # Col_Names_List <- 
+  #   Species_OGs %>%
+  #   dplyr::select(-Orthogroup) %>% 
+  #   colnames() 
+  
+  # for (Each_Col_Name in Col_Names_List) {
+  #   
+  #   all_assigned_OGsgenes_EV_MAB_monocots <- 
+  #     Species_OGs %>%
+  #     dplyr::select(Orthogroup, Each_Col_Name) %>%
+  #     dplyr::rename(pred_genes = Each_Col_Name) %>%
+  #     mutate(species = Each_Species) %>%
+  #     rbind(all_assigned_OGsgenes_EV_MAB_monocots)
+  # }
+  # 
+  # all_assigned_OGsgenes_EV_MAB_monocots <-
+  #   all_assigned_OGsgenes_EV_MAB_monocots %>% 
+  #   mutate(pred_genes  = str_replace_na(pred_genes, "NA") ) %>%
+  #   dplyr::filter(pred_genes != "NA", pred_genes !="" ) 
+  
+}
+
+all_assigned_OGsgenes_EV_MAB_monocots %>% distinct(genome)
+all_assigned_OGsgenes_EV_MAB_monocots %>% head()
+
+```
+
+
+# Parse Unassigned OG genes 
+
+```{r }
+unassigned_prot_EV_MAB_monocots <- "../EV_AED25_MAB_monocots/Orthogroups/Orthogroups_UnassignedGenes.tsv"
+
+Orthogroups_UnassignedGenes <- read.delim(unassigned_prot_EV_MAB_monocots, header = T, sep = '\t')
+
+Genomes_Lists <- Species_List
+
+
+# Orthogroups_UnassignedGenes %
+
+# Orthogroups_UnassignedGenes_EV_MB <- Orthogroups_UnassignedGenes_list
+
+
+### updated 
+Orthogroups_UnassignedGenes_EV_MB  <- c()
+
+for (Each_Genome in Genomes_Lists) {
+  Orthogroups_UnassignedGenes_EV_MB <- 
+    Orthogroups_UnassignedGenes %>% 
+    select(Orthogroup, Each_Genome) %>% 
+    distinct() %>% 
+    # filter(Name !="") %>% 
+    # rename(seq.name=Ensete_glaucum) %>%
+    mutate(
+      # seq.name = str_extract(Name,"\\w+[^\\s]+"),
+      genome = Each_Genome) %>% 
+    rename(seq.name = Each_Genome) %>% 
+    filter(seq.name != "") %>% 
+    rbind(Orthogroups_UnassignedGenes_EV_MB)
+  
+}
+
+
+Orthogroups_UnassignedGenes_EV_MB %>% 
+  filter(seq.name !="") %>% 
+  group_by(genome) %>%
+  summarise(count = n()) %>%
+  
+  ggplot(aes(x= factor(genome
+                       # , 
+                       # levels = c("Ensete_ventricosum_bedadeti","Ensete_ventricosum_mazia", 
+                       #                    "Ensete_glaucum","Musa_balbisiana","Musa_acuminata")
+  ),
+  y=count ))+
+  geom_col( position = "dodge" )+
+  # scale_y_continuous(breaks =c(85,  320, 1177))+
+  # scale_x_discrete(breaks =c("Ensete_ventricosum_bedadeti","Ensete_ventricosum_mazia","Musa_balbisiana","Musa_acuminata"),
+  #                  labels = c("EV (Bedadeti)","EV (Mazia)", "MB","MA"))+
+  # scale_y_continuous(breaks =c(1380,2398, 3311, 5955, 6418))+
+  
+  
+  coord_flip()+
+  # theme_bw() +
+  labs(
+    y  = " Number of unassigned orthogroups or genes",
+    # x = "Genomes"
+  )+
+  theme(
+    axis.title.x = element_markdown(size = 12, face = "bold"),
+    axis.title.y = element_blank(),
+    axis.line.x = element_line(),
+    axis.line.y = element_line(),
+    axis.text.y = element_markdown(size = 12),
+    axis.text.x = element_markdown(size = 10),
+    # axis.title.x
+    panel.grid.major.x  = element_line(color ="#888888", size = 0.08),
+    panel.background = element_rect(fill="#FFFFFF", color=NA),
+    legend.title = element_blank(),
+    legend.text = element_markdown(size = 12)
+    # legend.position = c(0.7,0.9)
+  )
+
+ggsave("../Orthogroups/VennDiag/Unassigned_OG_genes.tiff", width=7, height=7)
+```
+
+
+##Assigned_unassigned_combined
+```{r}
+
+assigned_unassigned_OGs_genes_EV_MAB_monocots <-
+  Orthogroups_UnassignedGenes_EV_MB %>%
+  mutate(OG_source = "assigned") %>%
+  filter(seq.name !="NA") %>% 
+  rbind(
+    all_assigned_OGsgenes_EV_MAB_monocots %>%
+      mutate(OG_source = "unassigned") %>%
+      filter(seq.name !="NA") ) %>%
+  filter(str_detect(genome,"Musa") | str_detect(genome,"Ensete")) 
+
+```
+
+
+## plot
+
+```{r plot}
+# multi_single_unique_unassigned_OG_summary.v1 <- 
+#   multi_single_unique_unassigned_OG_summary %>%
+#   # filter(name == "Ensete_ventricosum_mazia")
+#   mutate(name = str_replace_all(name,c("Ensete_ventricosum_bedadeti" = "*E. ventricosum* (Bedadeti)",
+#                                        "Ensete_ventricosum_mazia" = "*E. ventricosum* (Mazia)",
+#                                        "Musa_balbisiana" = "*M. balbisiana*",
+#                                        "Musa_acuminata" = "*M. acuminata*"))) 
+# 
+# 
+# 
+# multi_single_unique_unassigned_OG_summary.v1$name <- factor(multi_single_unique_unassigned_OG_summary.v1$name, 
+#                                                             levels = c("*E. ventricosum* (Mazia)", 
+#                                                                        "*E. ventricosum* (Bedadeti)",
+#                                                                        "*M. balbisiana*",  
+#                                                                        "*M. acuminata*"))
+# 
+# multi_single_unique_unassigned_OG_summary.v1 %>%
+#   
+#   ggplot(aes(name,value, fill = Orthogroup)) +
+#   geom_col()+
+#   # scale_y_continuous(breaks =c(0, 2239, 12890, 26000,39000))+
+#   # scale_x_discrete(breaks =c( "MB", "MA", "EV_bedadeti", "EV_mazia"),
+#   #                  labels = c("MB","MA",  "EV (Bedadeti)","EV (Mazia)"))+
+#   
+#   coord_flip()+
+#   # theme_bw() +
+#   labs(
+#     y =" Number of genes",
+#     # x = "Genomes"
+#   )+
+#   theme(
+#     axis.title.x = element_markdown(size = 12, face = "bold"),
+#     axis.title.y = element_blank(),
+#     axis.line.x = element_line(),
+#     axis.line.y = element_line(),
+#     axis.text.y = element_markdown(size = 12),
+#     axis.text.x = element_markdown(size = 12),
+#     # axis.title.x
+#     panel.grid.major.x  = element_line(color ="#888888", size = 0.08),
+#     panel.background = element_rect(fill="#FFFFFF", color=NA),
+#     legend.title = element_blank(),
+#     # legend.text = element_markdown(size = 12),
+#     legend.text = element_markdown(size=12),
+#     legend.key.size = unit(0.28,"cm"), 
+#     legend.box.spacing = unit(0.1,"cm"),
+#     legend.spacing = unit(0.8,"cm"),
+#     legend.spacing.y = unit(0.6,"cm"),
+#     legend.position = "top",
+#   ) + 
+#   guides(fill=guide_legend(nrow=2))
+# 
+# ggsave("../OG_EV_MAB_summary.v2.tiff", width=6, height=3.6)
+
+```
+
+```{r save}
+
+```
