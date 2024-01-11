@@ -7,7 +7,7 @@
    - annotation of protein-coding genes
    - Non-coding RNA (ncRNA) annotation
 4. [Comparative genomics and gene family conservation analysis](04_comparative_genomics)
-5. Analysis of [NLRs](05_NLSR_analysis/README.md)
+5. Analysis of [NLRs](05_NLR_analysis/README.md)
    - Analysis of NLR encoding genes
    - Phylogenetic analysis of NLRs
 
