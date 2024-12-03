@@ -1,9 +1,17 @@
+# This script parse GO_terms annotation generated for predicted protein coding genes and link it with transcript ID of each gene. 
 
-#take EV_MAB.OG_GeneCount from OrthoFinder2 resulst
+# List of package required
+packages = c("tidyverse", "phylotools")
 
-# load("scripts/OrthoFinder.EV.AED40.TE_removed.170.MABSIT.RData")
+# Install packages missing packages.
+installed_packages <- packages %in% rownames(installed.packages())
+if (any(installed_packages == FALSE)) {
+  install.packages(packages[!installed_packages])
+}
+
 
 library(tidyverse)
+library(phylotools)
 
 EV_AED25_TE.OG_GeneCount %>% filter(Orthogroup == "OG0000332")
 
@@ -12,9 +20,9 @@ EV_AED25_TE.OG_GeneCount %>% filter(Orthogroup == "OG0000332")
 Species_List <- c("mazia.AED25","bedadeti.AED25","Musa_acuminata",
                   "Musa_balbisiana")
 
-# dir.create("../../../bgimazia_musa/reannotation_analysis/mazia_reannotation/orthofinder/go_terms/")
+dir.create("absoute_path_to_orthofinder/go_terms/")
 
-path_to_go_interpro = "/Users/u1866313/rstudio/bgimazia_musa/reannotation_analysis/mazia_reannotation/interproscan_out/"
+path_to_go_interpro = "absolute_path_to_interproscan_out/"
 
 
 GO_terms_EV_AED25_MAB <- c()
