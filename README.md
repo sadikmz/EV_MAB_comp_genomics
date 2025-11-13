@@ -10,8 +10,3 @@
 5. Analysis of [NLRs](05_NLR_analysis/README.md)
    - Analysis of NLR encoding genes
    - Phylogenetic analysis of NLRs
-
-# Figures/Plots
-
-# Citation 
-Muzemil et al. What makes a banana false? Comparative genomics reveals how the Ethiopian orphan staple *Ensete ventricosum* differs from its related banana A and B sub-genomes
